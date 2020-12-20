@@ -69,6 +69,7 @@ use crate::{
 	group::{groups::Groups, GroupId},
 	mixer::TrackIndex,
 	parameter::{Parameter, Parameters},
+	pitch::Pitch,
 	playable::Playable,
 	sequence::SequenceInstanceId,
 	sound::{Sound, SoundId},
@@ -112,7 +113,7 @@ pub(crate) struct Instance {
 	track_index: TrackIndex,
 	sequence_id: Option<SequenceInstanceId>,
 	volume: CachedValue<f64>,
-	pitch: CachedValue<f64>,
+	pitch: CachedValue<Pitch>,
 	panning: CachedValue<f64>,
 	loop_start: Option<f64>,
 	reverse: bool,
@@ -142,7 +143,7 @@ impl Instance {
 			track_index: settings.track.or_default(playable.default_track()),
 			sequence_id,
 			volume: CachedValue::new(settings.volume, 1.0),
-			pitch: CachedValue::new(settings.pitch, 1.0),
+			pitch: CachedValue::new(settings.pitch, Default::default()),
 			panning: CachedValue::new(settings.panning, 0.5),
 			reverse: settings.reverse,
 			loop_start: settings.loop_start.into_option(playable),
@@ -197,7 +198,7 @@ impl Instance {
 		self.volume.set(volume);
 	}
 
-	pub fn set_pitch(&mut self, pitch: Value<f64>) {
+	pub fn set_pitch(&mut self, pitch: Value<Pitch>) {
 		self.pitch.set(pitch);
 	}
 
@@ -249,7 +250,7 @@ impl Instance {
 			self.volume.update(parameters);
 			self.pitch.update(parameters);
 			self.panning.update(parameters);
-			let mut pitch = self.pitch.value();
+			let mut pitch = self.pitch.value().to_factor();
 			if self.reverse {
 				pitch *= -1.0;
 			}

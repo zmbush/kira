@@ -19,6 +19,12 @@ pub fn index_set_from_vec<T: Hash + Eq>(v: Vec<T>) -> IndexSet<T> {
 	set
 }
 
+pub fn random_i32(lower: i32, upper: i32, rng: &mut impl RNG) -> i32 {
+	let range = (upper - lower).abs() as u16;
+	let sign = (upper - lower).signum();
+	lower + i32::from(rng.generate_range(0, range)) * sign
+}
+
 pub fn random_float_0_1(rng: &mut impl RNG) -> f64 {
 	f64::from(rng.generate::<u32>()) / f64::from(std::u32::MAX)
 }

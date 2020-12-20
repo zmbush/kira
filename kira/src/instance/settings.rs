@@ -1,6 +1,7 @@
 use crate::{
 	mixer::{SubTrackId, TrackIndex},
 	parameter::{EaseDirection, Easing, Tween},
+	pitch::Pitch,
 	playable::Playable,
 	Value,
 };
@@ -86,7 +87,7 @@ pub struct InstanceSettings {
 	/// The volume of the instance.
 	pub volume: Value<f64>,
 	/// The pitch of the instance, as a factor of the original pitch.
-	pub pitch: Value<f64>,
+	pub pitch: Value<Pitch>,
 	/// The panning of the instance (0 = hard left, 1 = hard right).
 	pub panning: Value<f64>,
 	/// Whether the instance should be played in reverse.
@@ -118,7 +119,7 @@ impl InstanceSettings {
 	}
 
 	/// Sets the pitch of the instance.
-	pub fn pitch<P: Into<Value<f64>>>(self, pitch: P) -> Self {
+	pub fn pitch<P: Into<Value<Pitch>>>(self, pitch: P) -> Self {
 		Self {
 			pitch: pitch.into(),
 			..self
@@ -178,7 +179,7 @@ impl Default for InstanceSettings {
 	fn default() -> Self {
 		Self {
 			volume: Value::Fixed(1.0),
-			pitch: Value::Fixed(1.0),
+			pitch: Value::Fixed(Default::default()),
 			panning: Value::Fixed(0.5),
 			reverse: false,
 			start_position: 0.0,

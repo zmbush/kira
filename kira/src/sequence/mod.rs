@@ -162,6 +162,7 @@ use crate::{
 		StopInstanceSettings,
 	},
 	parameter::{ParameterId, Tween},
+	pitch::Pitch,
 	playable::Playable,
 	util::index_set_from_vec,
 	AudioError, AudioResult, Duration, Tempo, Value,
@@ -184,7 +185,7 @@ impl Default for SequenceInstanceSettings {
 pub(crate) enum SequenceOutputCommand {
 	PlaySound(InstanceId, Playable, InstanceSettings),
 	SetInstanceVolume(InstanceId, Value<f64>),
-	SetInstancePitch(InstanceId, Value<f64>),
+	SetInstancePitch(InstanceId, Value<Pitch>),
 	SetInstancePanning(InstanceId, Value<f64>),
 	PauseInstance(InstanceId, PauseInstanceSettings),
 	ResumeInstance(InstanceId, ResumeInstanceSettings),
@@ -324,7 +325,7 @@ impl<CustomEvent: Clone + Eq + Hash> Sequence<CustomEvent> {
 	}
 
 	/// Adds a step to set the pitch of an instance.
-	pub fn set_instance_pitch(&mut self, id: InstanceId, pitch: Value<f64>) {
+	pub fn set_instance_pitch(&mut self, id: InstanceId, pitch: Value<Pitch>) {
 		self.steps
 			.push(SequenceOutputCommand::SetInstancePitch(id, pitch).into());
 	}

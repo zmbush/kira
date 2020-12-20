@@ -28,6 +28,7 @@ use crate::{
 		SubTrackId, Track, TrackIndex, TrackSettings,
 	},
 	parameter::{ParameterId, Tween},
+	pitch::Pitch,
 	playable::{Playable, PlayableSettings},
 	sequence::SequenceInstance,
 	sequence::{EventReceiver, Sequence, SequenceInstanceId, SequenceInstanceSettings},
@@ -332,7 +333,7 @@ impl AudioManager {
 	}
 
 	/// Sets the pitch of an instance.
-	pub fn set_instance_pitch<V: Into<Value<f64>>>(
+	pub fn set_instance_pitch<V: Into<Value<Pitch>>>(
 		&mut self,
 		id: InstanceId,
 		pitch: V,
