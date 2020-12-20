@@ -4,12 +4,24 @@ use nanorand::{tls_rng, RNG};
 
 use crate::{
 	parameter::{Mapping, ParameterId, Parameters},
-	util::lerp,
+	util::{lerp, random_float_0_1},
 };
+
+/// A trait for types that can be used as [`Value`]s.
+pub trait AsValue: std::fmt::Debug + Copy + From<f64> {
+	/// Gets a random value of this type within a range.
+	fn random_in_range(lower: Self, upper: Self, rng: &mut impl RNG) -> Self;
+}
+
+impl AsValue for f64 {
+	fn random_in_range(lower: Self, upper: Self, rng: &mut impl RNG) -> Self {
+		lerp(lower, upper, random_float_0_1(rng))
+	}
+}
 
 /// A value that something can be set to.
 #[derive(Debug, Copy, Clone)]
-pub enum Value<T: From<f64> + Into<f64> + Copy> {
+pub enum Value<T: AsValue> {
 	/// A fixed value.
 	Fixed(T),
 	/// The current value of a parameter.
@@ -18,19 +30,19 @@ pub enum Value<T: From<f64> + Into<f64> + Copy> {
 	Random(T, T),
 }
 
-impl<T: From<f64> + Into<f64> + Copy> From<T> for Value<T> {
+impl<T: AsValue> From<T> for Value<T> {
 	fn from(value: T) -> Self {
 		Self::Fixed(value)
 	}
 }
 
-impl<T: From<f64> + Into<f64> + Copy> From<ParameterId> for Value<T> {
+impl<T: AsValue> From<ParameterId> for Value<T> {
 	fn from(id: ParameterId) -> Self {
 		Self::Parameter(id, Mapping::default())
 	}
 }
 
-impl<T: From<f64> + Into<f64> + Copy> From<Range<T>> for Value<T> {
+impl<T: AsValue> From<Range<T>> for Value<T> {
 	fn from(range: Range<T>) -> Self {
 		Self::Random(range.start, range.end)
 	}
@@ -40,17 +52,12 @@ impl<T: From<f64> + Into<f64> + Copy> From<Range<T>> for Value<T> {
 ///
 /// You'll only need to use this if you're writing your own effects.
 #[derive(Debug, Copy, Clone)]
-pub struct CachedValue<T: From<f64> + Into<f64> + Copy> {
+pub struct CachedValue<T: AsValue> {
 	value: Value<T>,
 	last_value: T,
 }
 
-impl<T: From<f64> + Into<f64> + Copy> CachedValue<T> {
-	fn pick_random(lower: T, upper: T) -> T {
-		let fraction = f64::from(tls_rng().generate::<u32>()) / f64::from(std::u32::MAX);
-		lerp(lower.into(), upper.into(), fraction).into()
-	}
-
+impl<T: AsValue> CachedValue<T> {
 	/// Creates a `CachedValue` with an initial value setting
 	/// and a default raw value to fall back on.
 	pub fn new(value: Value<T>, default_value: T) -> Self {
@@ -59,7 +66,7 @@ impl<T: From<f64> + Into<f64> + Copy> CachedValue<T> {
 			last_value: match value {
 				Value::Fixed(value) => value,
 				Value::Parameter(_, _) => default_value,
-				Value::Random(lower, upper) => Self::pick_random(lower, upper),
+				Value::Random(lower, upper) => T::random_in_range(lower, upper, &mut *tls_rng()),
 			},
 		}
 	}
@@ -69,7 +76,7 @@ impl<T: From<f64> + Into<f64> + Copy> CachedValue<T> {
 		self.value = value;
 		match value {
 			Value::Random(lower, upper) => {
-				self.last_value = Self::pick_random(lower, upper);
+				self.last_value = T::random_in_range(lower, upper, &mut *tls_rng());
 			}
 			_ => {}
 		}
