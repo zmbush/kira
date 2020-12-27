@@ -154,6 +154,10 @@ impl Instance {
 		}
 	}
 
+	fn set_state(&mut self, state: InstanceState) {
+		self.state = state;
+	}
+
 	pub fn playable(&self) -> Playable {
 		self.playable
 	}
@@ -216,18 +220,18 @@ impl Instance {
 	}
 
 	pub fn pause(&mut self, settings: PauseInstanceSettings) {
-		self.state = if settings.fade_tween.is_some() {
+		self.set_state(if settings.fade_tween.is_some() {
 			InstanceState::Pausing(self.position)
 		} else {
 			InstanceState::Paused(self.position)
-		};
+		});
 		self.fade_volume.set(0.0, settings.fade_tween);
 	}
 
 	pub fn resume(&mut self, settings: ResumeInstanceSettings) {
 		match self.state {
 			InstanceState::Paused(position) | InstanceState::Pausing(position) => {
-				self.state = InstanceState::Playing;
+				self.set_state(InstanceState::Playing);
 				if settings.rewind_to_pause_position {
 					self.seek_to(position);
 				}
@@ -238,11 +242,11 @@ impl Instance {
 	}
 
 	pub fn stop(&mut self, settings: StopInstanceSettings) {
-		self.state = if settings.fade_tween.is_some() {
+		self.set_state(if settings.fade_tween.is_some() {
 			InstanceState::Stopping
 		} else {
 			InstanceState::Stopped
-		};
+		});
 		self.fade_volume.set(0.0, settings.fade_tween);
 	}
 
@@ -262,7 +266,7 @@ impl Instance {
 						self.position += self.playable.duration() - loop_start;
 					}
 				} else if self.position < 0.0 {
-					self.state = InstanceState::Stopped;
+					self.set_state(InstanceState::Stopped);
 				}
 			} else {
 				if let Some(loop_start) = self.loop_start {
@@ -270,7 +274,7 @@ impl Instance {
 						self.position -= self.playable.duration() - loop_start;
 					}
 				} else if self.position > self.playable.duration() {
-					self.state = InstanceState::Stopped;
+					self.set_state(InstanceState::Stopped);
 				}
 			}
 		}
@@ -278,10 +282,10 @@ impl Instance {
 		if finished_fading {
 			match self.state {
 				InstanceState::Pausing(position) => {
-					self.state = InstanceState::Paused(position);
+					self.set_state(InstanceState::Paused(position));
 				}
 				InstanceState::Stopping => {
-					self.state = InstanceState::Stopped;
+					self.set_state(InstanceState::Stopped);
 				}
 				_ => {}
 			}
