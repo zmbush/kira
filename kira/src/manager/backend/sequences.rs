@@ -1,6 +1,7 @@
 use crate::{
 	command::{Command, InstanceCommand, MetronomeCommand, ParameterCommand, SequenceCommand},
 	group::groups::Groups,
+	instance::Instance,
 	metronome::Metronome,
 	sequence::{SequenceInstance, SequenceInstanceId, SequenceOutputCommand},
 };
@@ -98,12 +99,8 @@ impl Sequences {
 			for command in self.sequence_output_command_queue.drain(..) {
 				self.output_command_queue.push(match command {
 					SequenceOutputCommand::PlaySound(instance_id, playable, settings) => {
-						Command::Instance(InstanceCommand::Play(
-							instance_id,
-							playable,
-							Some(*id),
-							settings,
-						))
+						let instance = Instance::new(playable, Some(*id), settings);
+						Command::Instance(InstanceCommand::Play(instance_id, instance, playable))
 					}
 					SequenceOutputCommand::SetInstanceVolume(id, volume) => {
 						Command::Instance(InstanceCommand::SetInstanceVolume(id, volume))

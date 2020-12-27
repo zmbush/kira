@@ -5,7 +5,7 @@ use ringbuf::Producer;
 use crate::{
 	command::{Command, InstanceCommand, ResourceCommand},
 	instance::{
-		InstanceHandle, InstanceId, InstanceSettings, PauseInstanceSettings,
+		Instance, InstanceHandle, InstanceId, InstanceSettings, PauseInstanceSettings,
 		ResumeInstanceSettings, StopInstanceSettings,
 	},
 	AudioError, AudioResult,
@@ -41,8 +41,9 @@ impl SoundHandle {
 
 	pub fn play(&mut self, settings: InstanceSettings) -> AudioResult<InstanceHandle> {
 		let instance_id = InstanceId::new();
+		let instance = Instance::new(self.id.into(), None, settings);
 		self.send_command_to_backend(
-			InstanceCommand::Play(instance_id, self.id.into(), None, settings).into(),
+			InstanceCommand::Play(instance_id, instance, self.id.into()).into(),
 		)
 		.map(|()| InstanceHandle::new(instance_id, self.command_producer.clone()))
 	}
