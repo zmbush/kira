@@ -1,7 +1,22 @@
-use crate::{arrangement::{Arrangement, ArrangementId}, audio_stream::{AudioStream, AudioStreamId}, group::{Group, GroupId}, instance::{Instance, InstanceId, InstanceSettings, PauseInstanceSettings, ResumeInstanceSettings, StopInstanceSettings}, mixer::{
+use crate::{
+	arrangement::{Arrangement, ArrangementId},
+	audio_stream::{AudioStream, AudioStreamId},
+	group::{Group, GroupId},
+	instance::{
+		Instance, InstanceId, InstanceSettings, PauseInstanceSettings, ResumeInstanceSettings,
+		StopInstanceSettings,
+	},
+	mixer::{
 		effect::{Effect, EffectId, EffectSettings},
 		SubTrackId, Track, TrackIndex,
-	}, parameter::{ParameterId, Tween}, playable::Playable, sequence::{SequenceInstance, SequenceInstanceId}, sound::{Sound, SoundId}, tempo::Tempo, value::Value};
+	},
+	parameter::{ParameterId, Tween},
+	playable::Playable,
+	sequence::{SequenceInstance, SequenceInstanceId},
+	sound::{Sound, SoundId},
+	tempo::Tempo,
+	value::Value,
+};
 
 #[derive(Debug, Clone)]
 pub(crate) enum ResourceCommand {
@@ -11,13 +26,9 @@ pub(crate) enum ResourceCommand {
 	RemoveArrangement(ArrangementId),
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub(crate) enum InstanceCommand {
-	Play(
-		InstanceId,
-		Instance,
-		Playable,
-	),
+	Play(InstanceId, Instance, Playable),
 	SetInstanceVolume(InstanceId, Value<f64>),
 	SetInstancePitch(InstanceId, Value<f64>),
 	SetInstancePanning(InstanceId, Value<f64>),

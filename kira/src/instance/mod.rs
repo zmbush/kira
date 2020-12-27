@@ -60,6 +60,7 @@
 mod handle;
 mod settings;
 
+use atomic::Atomic;
 pub use handle::InstanceHandle;
 pub use settings::*;
 
@@ -77,7 +78,10 @@ use crate::{
 	value::CachedValue,
 	value::Value,
 };
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{
+	atomic::{AtomicUsize, Ordering},
+	Arc,
+};
 
 static NEXT_INSTANCE_INDEX: AtomicUsize = AtomicUsize::new(0);
 
@@ -108,7 +112,7 @@ pub(crate) enum InstanceState {
 	Stopping,
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub(crate) struct Instance {
 	playable: Playable,
 	track_index: TrackIndex,
@@ -119,6 +123,7 @@ pub(crate) struct Instance {
 	loop_start: Option<f64>,
 	reverse: bool,
 	state: InstanceState,
+	public_state: Arc<Atomic<InstanceState>>,
 	position: f64,
 	fade_volume: Parameter,
 }
@@ -149,6 +154,7 @@ impl Instance {
 			reverse: settings.reverse,
 			loop_start: settings.loop_start.into_option(playable),
 			state: InstanceState::Playing,
+			public_state: Arc::new(Atomic::new(InstanceState::Playing)),
 			position: settings.start_position,
 			fade_volume,
 		}
