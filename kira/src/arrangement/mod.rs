@@ -165,9 +165,6 @@ impl Arrangement {
 			cooldown: settings.cooldown,
 			semantic_duration: settings.semantic_duration,
 			default_loop_start: settings.default_loop_start,
-			/// TODO: confirm whether the groups vec gets dropped
-			/// on the audio thread, and if so, find out if that's
-			/// a problem (i.e. whether it can cause audio glitches)
 			groups: index_set_from_vec(settings.groups),
 			cooldown_timer: 0.0,
 		}
