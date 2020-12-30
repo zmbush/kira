@@ -2,12 +2,19 @@
 
 mod backend;
 
-use std::hash::Hash;
-
 #[cfg(not(feature = "benchmarking"))]
 use backend::Backend;
 #[cfg(feature = "benchmarking")]
 pub use backend::Backend;
+
+use std::{hash::Hash, unreachable};
+
+#[cfg(feature = "serde_support")]
+use bimap::BiMap;
+use cpal::{
+	traits::{DeviceTrait, HostTrait, StreamTrait},
+	Stream,
+};
 use flume::{Receiver, Sender};
 
 use crate::{
@@ -25,10 +32,6 @@ use crate::{
 	sequence::{Sequence, SequenceInstanceHandle, SequenceInstanceId, SequenceInstanceSettings},
 	sound::{Sound, SoundHandle, SoundId},
 	util::index_set_from_vec,
-};
-use cpal::{
-	traits::{DeviceTrait, HostTrait, StreamTrait},
-	Stream,
 };
 
 /// Settings for an [`AudioManager`](crate::manager::AudioManager).
@@ -92,6 +95,8 @@ pub struct AudioManager {
 	// holds the stream if it has been created on the main thread
 	// so it can live for as long as the audio manager
 	_stream: Option<Stream>,
+	#[cfg(feature = "serde_support")]
+	sub_track_names: BiMap<String, SubTrackId>,
 }
 
 impl AudioManager {
@@ -157,6 +162,8 @@ impl AudioManager {
 			command_sender,
 			resources_to_unload_receiver,
 			_stream: stream,
+			#[cfg(feature = "serde_support")]
+			sub_track_names: BiMap::new(),
 		})
 	}
 
@@ -239,6 +246,8 @@ impl AudioManager {
 			command_sender,
 			resources_to_unload_receiver,
 			_stream: None,
+			#[cfg(feature = "serde_support")]
+			sub_track_names: BiMap::new(),
 		};
 		let backend = Backend::new(SAMPLE_RATE, settings, command_receiver, unloader);
 		Ok((audio_manager, backend))
@@ -354,8 +363,27 @@ impl AudioManager {
 		Ok(TrackHandle::new(id.into(), self.command_sender.clone()))
 	}
 
+	/// Creates a mixer sub-track and assigns it a name.
+	#[cfg(feature = "serde_support")]
+	pub fn add_named_sub_track(
+		&mut self,
+		name: impl Into<String>,
+		settings: TrackSettings,
+	) -> AudioResult<TrackHandle> {
+		let handle = self.add_sub_track(settings)?;
+		match handle.index() {
+			TrackIndex::Main => unreachable!(),
+			TrackIndex::Sub(id) => {
+				self.sub_track_names.insert(name.into(), id);
+			}
+		}
+		Ok(handle)
+	}
+
 	/// Removes a sub-track from the mixer.
 	pub fn remove_sub_track(&mut self, id: SubTrackId) -> AudioResult<()> {
+		#[cfg(feature = "serde_support")]
+		self.sub_track_names.remove_by_right(&id);
 		self.command_sender
 			.push(MixerCommand::RemoveSubTrack(id.into()).into())
 	}
@@ -376,6 +404,26 @@ impl AudioManager {
 	pub fn remove_group(&mut self, id: impl Into<GroupId>) -> AudioResult<()> {
 		self.command_sender
 			.push(GroupCommand::RemoveGroup(id.into()).into())
+	}
+
+	#[cfg(feature = "serde_support")]
+	pub fn load_playable_settings(
+		&self,
+		settings: crate::playable::SerializablePlayableSettings,
+	) -> AudioResult<crate::playable::PlayableSettings> {
+		Ok(crate::playable::PlayableSettings {
+			default_track: match settings.default_track {
+				Some(name) => match self.sub_track_names.get_by_left(&name) {
+					Some(id) => TrackIndex::Sub(*id),
+					None => return Err(AudioError::NoTrackWithName(name)),
+				},
+				None => TrackIndex::Main,
+			},
+			cooldown: settings.cooldown,
+			semantic_duration: settings.semantic_duration,
+			default_loop_start: settings.default_loop_start,
+			groups: vec![],
+		})
 	}
 }
 

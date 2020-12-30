@@ -109,6 +109,39 @@ impl Default for PlayableSettings {
 	}
 }
 
+#[cfg(feature = "serde_support")]
+/// Serializable settings for a [`Playable`](Playable) item.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct SerializablePlayableSettings {
+	/// The track instances of this item will play on by default.
+	pub default_track: Option<String>,
+	/// Whether the item should have a "cool off" period after playing
+	/// before it can be played again, and if so, the duration
+	/// of that cool off period.
+	///
+	/// This is useful to avoid situations where the same item
+	/// is played multiple times at the exact same point in time,
+	/// resulting in the item being louder than normal.
+	pub cooldown: Option<f64>,
+	/// How long the item is musically.
+	///
+	/// For example, a recording of a 2-bar drum fill
+	/// in an echoey cathedral may have 5 seconds of actual
+	/// drumming and then 10 seconds of reverberations from
+	/// the building. So even though the audio is 15 seconds
+	/// long, you might say the music only lasts for 5 seconds.
+	///
+	/// If set, the semantic duration of the item will be
+	/// used as the default end point when looping the item.
+	pub semantic_duration: Option<f64>,
+	/// Whether the item should be looped by default, and if so,
+	/// the point an instance should jump back to when it reaches
+	/// the end.
+	pub default_loop_start: Option<f64>,
+	/// The groups this item belongs to.
+	pub groups: Option<Vec<String>>,
+}
+
 /// Represents something you can play multiple instances of.
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum Playable {
