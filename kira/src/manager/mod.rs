@@ -97,6 +97,8 @@ pub struct AudioManager {
 	_stream: Option<Stream>,
 	#[cfg(feature = "serde_support")]
 	sub_track_names: BiMap<String, SubTrackId>,
+	#[cfg(feature = "serde_support")]
+	group_names: BiMap<String, GroupId>,
 }
 
 impl AudioManager {
@@ -164,6 +166,8 @@ impl AudioManager {
 			_stream: stream,
 			#[cfg(feature = "serde_support")]
 			sub_track_names: BiMap::new(),
+			#[cfg(feature = "serde_support")]
+			group_names: BiMap::new(),
 		})
 	}
 
@@ -248,6 +252,8 @@ impl AudioManager {
 			_stream: None,
 			#[cfg(feature = "serde_support")]
 			sub_track_names: BiMap::new(),
+			#[cfg(feature = "serde_support")]
+			group_names: BiMap::new(),
 		};
 		let backend = Backend::new(SAMPLE_RATE, settings, command_receiver, unloader);
 		Ok((audio_manager, backend))
@@ -389,9 +395,9 @@ impl AudioManager {
 	}
 
 	/// Adds a group.
-	pub fn add_group<T: Into<Vec<GroupId>>>(
+	pub fn add_group(
 		&mut self,
-		parent_groups: T,
+		parent_groups: impl Into<Vec<GroupId>>,
 	) -> AudioResult<GroupHandle> {
 		let id = GroupId::new();
 		let group = Group::new(index_set_from_vec(parent_groups.into()));
@@ -400,10 +406,25 @@ impl AudioManager {
 		Ok(GroupHandle::new(id, self.command_sender.clone()))
 	}
 
+	/// Adds a group and assigns it a name.
+	#[cfg(feature = "serde_support")]
+	pub fn add_named_group(
+		&mut self,
+		name: impl Into<String>,
+		parent_groups: impl Into<Vec<GroupId>>,
+	) -> AudioResult<GroupHandle> {
+		let handle = self.add_group(parent_groups)?;
+		self.group_names.insert(name.into(), handle.id());
+		Ok(handle)
+	}
+
 	/// Removes a group.
 	pub fn remove_group(&mut self, id: impl Into<GroupId>) -> AudioResult<()> {
+		let id: GroupId = id.into();
+		#[cfg(feature = "serde_support")]
+		self.group_names.remove_by_right(&id);
 		self.command_sender
-			.push(GroupCommand::RemoveGroup(id.into()).into())
+			.push(GroupCommand::RemoveGroup(id).into())
 	}
 
 	#[cfg(feature = "serde_support")]
@@ -422,7 +443,21 @@ impl AudioManager {
 			cooldown: settings.cooldown,
 			semantic_duration: settings.semantic_duration,
 			default_loop_start: settings.default_loop_start,
-			groups: vec![],
+			groups: match settings.groups {
+				Some(group_names) => {
+					let mut group_ids = vec![];
+					for name in group_names {
+						match self.group_names.get_by_left(&name) {
+							Some(id) => {
+								group_ids.push(*id);
+							}
+							None => return Err(AudioError::NoGroupWithName(name)),
+						}
+					}
+					group_ids
+				}
+				None => vec![],
+			},
 		})
 	}
 }

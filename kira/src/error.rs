@@ -34,6 +34,8 @@ pub enum AudioError {
 	InvalidSequenceLoopPoint,
 	/// Tried to use a named mixer track that doesn't exist.
 	NoTrackWithName(String),
+	/// Tried to use a named group that doesn't exist.
+	NoGroupWithName(String),
 	/// An error occurred when interacting with the filesystem.
 	IoError(std::io::Error),
 	/// An error occurred when loading an mp3 file.
@@ -86,6 +88,9 @@ impl Display for AudioError {
 			}
 			AudioError::NoTrackWithName(name) => {
 				f.write_str(&format!("No mixer track named '{}' exists", name))
+			}
+			AudioError::NoGroupWithName(name) => {
+				f.write_str(&format!("No group named '{}' exists", name))
 			}
 			AudioError::IoError(error) => f.write_str(&format!("{}", error)),
 			#[cfg(feature = "mp3")]
