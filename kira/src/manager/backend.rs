@@ -1,23 +1,42 @@
-use std::f32::consts::TAU;
+use flume::Receiver;
+use indexmap::IndexMap;
 
-use crate::frame::Frame;
+use crate::{
+	command::Command,
+	frame::Frame,
+	instance::{Instance, InstanceId},
+};
 
-pub struct Backend {
-	dt: f32,
-	phase: f32,
+const NUM_INSTANCES: usize = 100;
+
+pub struct Backend<'a> {
+	dt: f64,
+	instances: IndexMap<InstanceId, Instance<'a>>,
+	command_receiver: Receiver<Command<'a>>,
 }
 
-impl Backend {
-	pub fn new(sample_rate: u32) -> Self {
+impl<'a> Backend<'a> {
+	pub fn new(sample_rate: u32, command_receiver: Receiver<Command<'a>>) -> Self {
 		Self {
-			dt: 1.0 / sample_rate as f32,
-			phase: 0.0,
+			dt: 1.0 / sample_rate as f64,
+			instances: IndexMap::with_capacity(NUM_INSTANCES),
+			command_receiver,
 		}
 	}
 
 	pub fn process(&mut self) -> Frame {
-		self.phase += 440.0 * self.dt;
-		self.phase %= 1.0;
-		Frame::from_mono((self.phase * TAU).sin() * 0.25)
+		for command in self.command_receiver.try_iter() {
+			match command {
+				Command::StartInstance(id, instance) => {
+					self.instances.insert(id, instance);
+				}
+			}
+		}
+
+		let mut out = Frame::from_mono(0.0);
+		for (_, instance) in &mut self.instances {
+			out += instance.process(self.dt);
+		}
+		out
 	}
 }
