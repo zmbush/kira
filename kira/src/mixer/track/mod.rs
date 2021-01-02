@@ -48,6 +48,8 @@ pub enum TrackIndex {
 	/// For example, in a game, you may have one sub-track
 	/// for sound effects and another for music.
 	Sub(SubTrackId),
+	/// A named track.
+	Named(&'static str),
 }
 
 impl Default for TrackIndex {
@@ -68,21 +70,33 @@ impl From<&TrackHandle> for TrackIndex {
 	}
 }
 
+impl From<&'static str> for TrackIndex {
+	fn from(name: &'static str) -> Self {
+		Self::Named(name)
+	}
+}
+
 /// Settings for a mixer track.
 #[derive(Debug, Copy, Clone)]
 pub struct TrackSettings {
+	/// The name of the track.
+	pub name: Option<&'static str>,
 	/// The volume of the track.
 	pub volume: f64,
 }
 
 impl Default for TrackSettings {
 	fn default() -> Self {
-		Self { volume: 1.0 }
+		Self {
+			name: None,
+			volume: 1.0,
+		}
 	}
 }
 
 #[derive(Debug)]
 pub(crate) struct Track {
+	name: Option<&'static str>,
 	volume: f64,
 	effect_slots: IndexMap<EffectId, EffectSlot>,
 	input: Frame,
@@ -91,10 +105,15 @@ pub(crate) struct Track {
 impl Track {
 	pub fn new(settings: TrackSettings) -> Self {
 		Self {
+			name: settings.name,
 			volume: settings.volume,
 			effect_slots: IndexMap::new(),
 			input: Frame::from_mono(0.0),
 		}
+	}
+
+	pub fn name(&self) -> Option<&'static str> {
+		self.name
 	}
 
 	pub fn add_effect(&mut self, id: EffectId, effect: Box<dyn Effect>, settings: EffectSettings) {
