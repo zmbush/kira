@@ -1,6 +1,9 @@
+#[cfg(feature = "serde_support")]
+pub(crate) mod serde;
+
 use indexmap::IndexSet;
 
-use super::{groups::Groups, GroupHandle, GroupId, GroupIndex};
+use super::{groups::Groups, GroupId, GroupIndex};
 
 #[derive(Debug, Clone)]
 pub struct GroupSet {

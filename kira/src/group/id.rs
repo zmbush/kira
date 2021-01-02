@@ -29,7 +29,12 @@ impl From<&GroupHandle> for GroupId {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(
+	feature = "serde_support",
+	derive(serde::Serialize, serde::Deserialize)
+)]
 pub enum GroupIndex {
+	#[cfg_attr(feature = "serde_support", serde(skip))]
 	Id(GroupId),
 	Name(&'static str),
 }
