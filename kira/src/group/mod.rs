@@ -22,14 +22,36 @@ pub use handle::GroupHandle;
 pub use id::{GroupId, GroupIndex};
 pub use set::GroupSet;
 
+pub struct GroupSettings {
+	pub name: Option<&'static str>,
+	pub groups: GroupSet,
+}
+
+impl Default for GroupSettings {
+	fn default() -> Self {
+		Self {
+			name: None,
+			groups: GroupSet::new(),
+		}
+	}
+}
+
 #[derive(Debug, Clone)]
 pub(crate) struct Group {
+	name: Option<&'static str>,
 	groups: GroupSet,
 }
 
 impl Group {
-	pub fn new(groups: GroupSet) -> Self {
-		Self { groups }
+	pub fn new(settings: GroupSettings) -> Self {
+		Self {
+			name: settings.name,
+			groups: settings.groups,
+		}
+	}
+
+	pub fn name(&self) -> Option<&'static str> {
+		self.name
 	}
 
 	pub fn groups(&self) -> &GroupSet {

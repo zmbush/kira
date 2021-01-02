@@ -32,9 +32,13 @@ impl Groups {
 	pub fn run_command(&mut self, command: GroupCommand) -> Option<Group> {
 		match command {
 			GroupCommand::AddGroup(id, group) => {
+				if let Some(name) = group.name() {
+					self.group_names.insert(name, id);
+				}
 				self.groups.insert(id, group);
 			}
 			GroupCommand::RemoveGroup(id) => {
+				self.group_names.remove_by_right(&id);
 				return self.groups.remove(&id);
 			}
 		}
