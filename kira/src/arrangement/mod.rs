@@ -131,14 +131,13 @@ pub use handle::ArrangementHandle;
 pub use id::ArrangementId;
 pub use settings::LoopArrangementSettings;
 
-use indexmap::{IndexMap, IndexSet};
+use indexmap::IndexMap;
 
 use crate::{
-	group::{groups::Groups, GroupId},
+	group::GroupSet,
 	mixer::TrackIndex,
 	playable::PlayableSettings,
 	sound::{Sound, SoundId},
-	util::index_set_from_vec,
 	Frame,
 };
 
@@ -151,7 +150,7 @@ pub struct Arrangement {
 	cooldown: Option<f64>,
 	semantic_duration: Option<f64>,
 	default_loop_start: Option<f64>,
-	groups: IndexSet<GroupId>,
+	groups: GroupSet,
 	cooldown_timer: f64,
 }
 
@@ -165,7 +164,7 @@ impl Arrangement {
 			cooldown: settings.cooldown,
 			semantic_duration: settings.semantic_duration,
 			default_loop_start: settings.default_loop_start,
-			groups: index_set_from_vec(settings.groups),
+			groups: settings.groups,
 			cooldown_timer: 0.0,
 		}
 	}
@@ -241,6 +240,10 @@ impl Arrangement {
 		self.duration
 	}
 
+	pub fn groups(&self) -> &GroupSet {
+		&self.groups
+	}
+
 	/// Gets the frame at the given position of the arrangement.
 	pub(crate) fn get_frame_at_position(
 		&self,
@@ -274,26 +277,5 @@ impl Arrangement {
 	/// be started until the timer is up.
 	pub(crate) fn cooling_down(&self) -> bool {
 		self.cooldown_timer > 0.0
-	}
-
-	/// Returns if this arrangement is in the group with the given ID.
-	pub(crate) fn is_in_group(&self, parent_id: GroupId, groups: &Groups) -> bool {
-		if groups.get(parent_id).is_none() {
-			return false;
-		}
-		// check if this arrangement is a direct descendant of the requested group
-		if self.groups.contains(&parent_id) {
-			return true;
-		}
-		// otherwise, recursively check if any of the direct parents of this
-		// arrangement is in the requested group
-		for id in &self.groups {
-			if let Some(group) = groups.get(*id) {
-				if group.is_in_group(parent_id, groups) {
-					return true;
-				}
-			}
-		}
-		false
 	}
 }

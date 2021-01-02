@@ -201,6 +201,6 @@ impl SequenceInstance {
 	}
 
 	pub(crate) fn is_in_group(&self, parent_id: GroupId, groups: &Groups) -> bool {
-		self.sequence.is_in_group(parent_id, groups)
+		self.sequence.groups().is_in_group(parent_id, groups)
 	}
 }

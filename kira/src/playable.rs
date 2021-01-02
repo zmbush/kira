@@ -1,12 +1,10 @@
 //! Provides a wrapper around sounds and arrangements.
 
-use std::vec;
-
 use indexmap::IndexMap;
 
 use crate::{
 	arrangement::{Arrangement, ArrangementHandle, ArrangementId},
-	group::{groups::Groups, GroupId},
+	group::{groups::Groups, GroupId, GroupSet},
 	mixer::TrackIndex,
 	sound::{Sound, SoundHandle, SoundId},
 	Frame,
@@ -41,7 +39,7 @@ pub struct PlayableSettings {
 	/// the end.
 	pub default_loop_start: Option<f64>,
 	/// The groups this item belongs to.
-	pub groups: Vec<GroupId>,
+	pub groups: GroupSet,
 }
 
 impl PlayableSettings {
@@ -83,17 +81,11 @@ impl PlayableSettings {
 	}
 
 	/// Sets the group this item belongs to.
-	pub fn groups<T: Into<Vec<GroupId>>>(self, groups: T) -> Self {
+	pub fn groups<T: Into<GroupSet>>(self, groups: T) -> Self {
 		Self {
 			groups: groups.into(),
 			..self
 		}
-	}
-
-	/// Adds this item to a group.
-	pub fn group(mut self, group: impl Into<GroupId>) -> Self {
-		self.groups.push(group.into());
-		self
 	}
 }
 
@@ -104,7 +96,7 @@ impl Default for PlayableSettings {
 			cooldown: Some(0.0001),
 			semantic_duration: None,
 			default_loop_start: None,
-			groups: vec![],
+			groups: GroupSet::new(),
 		}
 	}
 }
@@ -180,7 +172,7 @@ impl Playable {
 
 	pub(crate) fn is_in_group(
 		&self,
-		parent_id: GroupId,
+		target_id: GroupId,
 		sounds: &IndexMap<SoundId, Sound>,
 		arrangements: &IndexMap<ArrangementId, Arrangement>,
 		groups: &Groups,
@@ -188,12 +180,12 @@ impl Playable {
 		match self {
 			Playable::Sound(id) => {
 				if let Some(sound) = sounds.get(id) {
-					return sound.is_in_group(parent_id, groups);
+					return sound.groups().is_in_group(target_id, groups);
 				}
 			}
 			Playable::Arrangement(id) => {
 				if let Some(arrangement) = arrangements.get(id) {
-					return arrangement.is_in_group(parent_id, groups);
+					return arrangement.groups().is_in_group(target_id, groups);
 				}
 			}
 		}
