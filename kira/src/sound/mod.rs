@@ -10,7 +10,7 @@ pub use id::SoundId;
 use crate::{
 	frame::Frame,
 	group::{groups::Groups, GroupId, GroupSet},
-	mixer::{SubTrackId, TrackId, TrackIdTrait},
+	mixer::{SubTrackId, TrackId, TrackIdTrait, TrackLabel},
 	playable::PlayableSettings,
 };
 
@@ -37,233 +37,6 @@ pub struct Sound<TrackIdType: TrackIdTrait = TrackId> {
 }
 
 impl<TrackIdType: TrackIdTrait> Sound<TrackIdType> {
-	/// Creates a new sound from raw sample data.
-	pub fn from_frames(
-		sample_rate: u32,
-		frames: Vec<Frame>,
-		settings: PlayableSettings<TrackIdType>,
-	) -> Self {
-		let duration = frames.len() as f64 / sample_rate as f64;
-		Self {
-			sample_rate,
-			frames,
-			duration,
-			default_track: settings.default_track,
-			cooldown: settings.cooldown,
-			semantic_duration: settings.semantic_duration,
-			default_loop_start: settings.default_loop_start,
-			groups: settings.groups,
-			cooldown_timer: 0.0,
-		}
-	}
-
-	/// Decodes a sound from an mp3 file.
-	#[cfg(feature = "mp3")]
-	pub fn from_mp3_file<P>(path: P, settings: PlayableSettings<TrackIdType>) -> AudioResult<Self>
-	where
-		P: AsRef<Path>,
-	{
-		let mut decoder = minimp3::Decoder::new(File::open(path)?);
-		let mut sample_rate = None;
-		let mut stereo_samples = vec![];
-		loop {
-			match decoder.next_frame() {
-				Ok(frame) => {
-					if let Some(sample_rate) = sample_rate {
-						if sample_rate != frame.sample_rate {
-							return Err(AudioError::VariableMp3SampleRate);
-						}
-					} else {
-						sample_rate = Some(frame.sample_rate);
-					}
-					match frame.channels {
-						1 => {
-							for sample in frame.data {
-								stereo_samples.push(Frame::from_i32(
-									sample.into(),
-									sample.into(),
-									16,
-								))
-							}
-						}
-						2 => {
-							let mut iter = frame.data.iter();
-							while let (Some(left), Some(right)) = (iter.next(), iter.next()) {
-								stereo_samples.push(Frame::from_i32(
-									(*left).into(),
-									(*right).into(),
-									16,
-								))
-							}
-						}
-						_ => return Err(AudioError::UnsupportedChannelConfiguration),
-					}
-				}
-				Err(error) => match error {
-					minimp3::Error::Eof => break,
-					error => return Err(error.into()),
-				},
-			}
-		}
-		let sample_rate = match sample_rate {
-			Some(sample_rate) => sample_rate,
-			None => return Err(AudioError::UnknownMp3SampleRate),
-		};
-		Ok(Self::from_frames(
-			sample_rate as u32,
-			stereo_samples,
-			settings,
-		))
-	}
-
-	/// Decodes a sound from an ogg file.
-	#[cfg(feature = "ogg")]
-	pub fn from_ogg_file<P>(path: P, settings: PlayableSettings<TrackIdType>) -> AudioResult<Self>
-	where
-		P: AsRef<Path>,
-	{
-		use lewton::{inside_ogg::OggStreamReader, samples::Samples};
-		let mut reader = OggStreamReader::new(File::open(path)?)?;
-		let mut stereo_samples = vec![];
-		while let Some(packet) = reader.read_dec_packet_generic::<Vec<Vec<f32>>>()? {
-			let num_channels = packet.len();
-			let num_samples = packet.num_samples();
-			match num_channels {
-				1 => {
-					for i in 0..num_samples {
-						stereo_samples.push(Frame::from_mono(packet[0][i]));
-					}
-				}
-				2 => {
-					for i in 0..num_samples {
-						stereo_samples.push(Frame::new(packet[0][i], packet[1][i]));
-					}
-				}
-				_ => return Err(AudioError::UnsupportedChannelConfiguration),
-			}
-		}
-		Ok(Self::from_frames(
-			reader.ident_hdr.audio_sample_rate,
-			stereo_samples,
-			settings,
-		))
-	}
-
-	/// Decodes a sound from a flac file.
-	#[cfg(feature = "flac")]
-	pub fn from_flac_file<P>(path: P, settings: PlayableSettings<TrackIdType>) -> AudioResult<Self>
-	where
-		P: AsRef<Path>,
-	{
-		let mut reader = claxon::FlacReader::open(path)?;
-		let streaminfo = reader.streaminfo();
-		let mut stereo_samples = vec![];
-		match reader.streaminfo().channels {
-			1 => {
-				for sample in reader.samples() {
-					let sample = sample?;
-					stereo_samples.push(Frame::from_i32(
-						sample,
-						sample,
-						streaminfo.bits_per_sample,
-					));
-				}
-			}
-			2 => {
-				let mut iter = reader.samples();
-				while let (Some(left), Some(right)) = (iter.next(), iter.next()) {
-					stereo_samples.push(Frame::from_i32(left?, right?, streaminfo.bits_per_sample));
-				}
-			}
-			_ => return Err(AudioError::UnsupportedChannelConfiguration),
-		}
-		Ok(Self::from_frames(
-			streaminfo.sample_rate,
-			stereo_samples,
-			settings,
-		))
-	}
-
-	/// Decodes a sound from a wav file.
-	#[cfg(feature = "wav")]
-	pub fn from_wav_file<P>(path: P, settings: PlayableSettings<TrackIdType>) -> AudioResult<Self>
-	where
-		P: AsRef<Path>,
-	{
-		let mut reader = hound::WavReader::open(path)?;
-		let spec = reader.spec();
-		let mut stereo_samples = vec![];
-		match reader.spec().channels {
-			1 => match spec.sample_format {
-				hound::SampleFormat::Float => {
-					for sample in reader.samples::<f32>() {
-						stereo_samples.push(Frame::from_mono(sample?))
-					}
-				}
-				hound::SampleFormat::Int => {
-					for sample in reader.samples::<i32>() {
-						let sample = sample?;
-						stereo_samples.push(Frame::from_i32(
-							sample,
-							sample,
-							spec.bits_per_sample.into(),
-						));
-					}
-				}
-			},
-			2 => match spec.sample_format {
-				hound::SampleFormat::Float => {
-					let mut iter = reader.samples::<f32>();
-					while let (Some(left), Some(right)) = (iter.next(), iter.next()) {
-						stereo_samples.push(Frame::new(left?, right?));
-					}
-				}
-				hound::SampleFormat::Int => {
-					let mut iter = reader.samples::<i32>();
-					while let (Some(left), Some(right)) = (iter.next(), iter.next()) {
-						stereo_samples.push(Frame::from_i32(
-							left?,
-							right?,
-							spec.bits_per_sample.into(),
-						));
-					}
-				}
-			},
-			_ => return Err(AudioError::UnsupportedChannelConfiguration),
-		}
-		Ok(Self::from_frames(
-			reader.spec().sample_rate,
-			stereo_samples,
-			settings,
-		))
-	}
-
-	/// Decodes a sound from a file.
-	///
-	/// The audio format will be automatically determined from the file extension.
-	#[cfg(any(feature = "mp3", feature = "ogg", feature = "flac", feature = "wav"))]
-	pub fn from_file<P>(path: P, settings: PlayableSettings<TrackIdType>) -> AudioResult<Self>
-	where
-		P: AsRef<Path>,
-	{
-		if let Some(extension) = path.as_ref().extension() {
-			if let Some(extension_str) = extension.to_str() {
-				match extension_str {
-					#[cfg(feature = "mp3")]
-					"mp3" => return Self::from_mp3_file(path, settings),
-					#[cfg(feature = "ogg")]
-					"ogg" => return Self::from_ogg_file(path, settings),
-					#[cfg(feature = "flac")]
-					"flac" => return Self::from_flac_file(path, settings),
-					#[cfg(feature = "wav")]
-					"wav" => return Self::from_wav_file(path, settings),
-					_ => {}
-				}
-			}
-		}
-		Err(AudioError::UnsupportedAudioFileFormat)
-	}
-
 	/// Gets the default track that the sound plays on.
 	pub fn default_track(&self) -> &TrackIdType {
 		&self.default_track
@@ -343,6 +116,231 @@ impl<TrackIdType: TrackIdTrait> Sound<TrackIdType> {
 	/// Returns if this sound is in the group with the given ID.
 	pub(crate) fn is_in_group(&self, id: GroupId, all_groups: &Groups) -> bool {
 		self.groups.has_ancestor(id, all_groups)
+	}
+}
+
+impl Sound<TrackLabel> {
+	/// Creates a new sound from raw sample data.
+	pub fn from_frames(sample_rate: u32, frames: Vec<Frame>, settings: PlayableSettings) -> Self {
+		let duration = frames.len() as f64 / sample_rate as f64;
+		Self {
+			sample_rate,
+			frames,
+			duration,
+			default_track: settings.default_track,
+			cooldown: settings.cooldown,
+			semantic_duration: settings.semantic_duration,
+			default_loop_start: settings.default_loop_start,
+			groups: settings.groups,
+			cooldown_timer: 0.0,
+		}
+	}
+
+	/// Decodes a sound from an mp3 file.
+	#[cfg(feature = "mp3")]
+	pub fn from_mp3_file<P>(path: P, settings: PlayableSettings) -> AudioResult<Self>
+	where
+		P: AsRef<Path>,
+	{
+		let mut decoder = minimp3::Decoder::new(File::open(path)?);
+		let mut sample_rate = None;
+		let mut stereo_samples = vec![];
+		loop {
+			match decoder.next_frame() {
+				Ok(frame) => {
+					if let Some(sample_rate) = sample_rate {
+						if sample_rate != frame.sample_rate {
+							return Err(AudioError::VariableMp3SampleRate);
+						}
+					} else {
+						sample_rate = Some(frame.sample_rate);
+					}
+					match frame.channels {
+						1 => {
+							for sample in frame.data {
+								stereo_samples.push(Frame::from_i32(
+									sample.into(),
+									sample.into(),
+									16,
+								))
+							}
+						}
+						2 => {
+							let mut iter = frame.data.iter();
+							while let (Some(left), Some(right)) = (iter.next(), iter.next()) {
+								stereo_samples.push(Frame::from_i32(
+									(*left).into(),
+									(*right).into(),
+									16,
+								))
+							}
+						}
+						_ => return Err(AudioError::UnsupportedChannelConfiguration),
+					}
+				}
+				Err(error) => match error {
+					minimp3::Error::Eof => break,
+					error => return Err(error.into()),
+				},
+			}
+		}
+		let sample_rate = match sample_rate {
+			Some(sample_rate) => sample_rate,
+			None => return Err(AudioError::UnknownMp3SampleRate),
+		};
+		Ok(Self::from_frames(
+			sample_rate as u32,
+			stereo_samples,
+			settings,
+		))
+	}
+
+	/// Decodes a sound from an ogg file.
+	#[cfg(feature = "ogg")]
+	pub fn from_ogg_file<P>(path: P, settings: PlayableSettings) -> AudioResult<Self>
+	where
+		P: AsRef<Path>,
+	{
+		use lewton::{inside_ogg::OggStreamReader, samples::Samples};
+		let mut reader = OggStreamReader::new(File::open(path)?)?;
+		let mut stereo_samples = vec![];
+		while let Some(packet) = reader.read_dec_packet_generic::<Vec<Vec<f32>>>()? {
+			let num_channels = packet.len();
+			let num_samples = packet.num_samples();
+			match num_channels {
+				1 => {
+					for i in 0..num_samples {
+						stereo_samples.push(Frame::from_mono(packet[0][i]));
+					}
+				}
+				2 => {
+					for i in 0..num_samples {
+						stereo_samples.push(Frame::new(packet[0][i], packet[1][i]));
+					}
+				}
+				_ => return Err(AudioError::UnsupportedChannelConfiguration),
+			}
+		}
+		Ok(Self::from_frames(
+			reader.ident_hdr.audio_sample_rate,
+			stereo_samples,
+			settings,
+		))
+	}
+
+	/// Decodes a sound from a flac file.
+	#[cfg(feature = "flac")]
+	pub fn from_flac_file<P>(path: P, settings: PlayableSettings) -> AudioResult<Self>
+	where
+		P: AsRef<Path>,
+	{
+		let mut reader = claxon::FlacReader::open(path)?;
+		let streaminfo = reader.streaminfo();
+		let mut stereo_samples = vec![];
+		match reader.streaminfo().channels {
+			1 => {
+				for sample in reader.samples() {
+					let sample = sample?;
+					stereo_samples.push(Frame::from_i32(
+						sample,
+						sample,
+						streaminfo.bits_per_sample,
+					));
+				}
+			}
+			2 => {
+				let mut iter = reader.samples();
+				while let (Some(left), Some(right)) = (iter.next(), iter.next()) {
+					stereo_samples.push(Frame::from_i32(left?, right?, streaminfo.bits_per_sample));
+				}
+			}
+			_ => return Err(AudioError::UnsupportedChannelConfiguration),
+		}
+		Ok(Self::from_frames(
+			streaminfo.sample_rate,
+			stereo_samples,
+			settings,
+		))
+	}
+
+	/// Decodes a sound from a wav file.
+	#[cfg(feature = "wav")]
+	pub fn from_wav_file<P>(path: P, settings: PlayableSettings) -> AudioResult<Self>
+	where
+		P: AsRef<Path>,
+	{
+		let mut reader = hound::WavReader::open(path)?;
+		let spec = reader.spec();
+		let mut stereo_samples = vec![];
+		match reader.spec().channels {
+			1 => match spec.sample_format {
+				hound::SampleFormat::Float => {
+					for sample in reader.samples::<f32>() {
+						stereo_samples.push(Frame::from_mono(sample?))
+					}
+				}
+				hound::SampleFormat::Int => {
+					for sample in reader.samples::<i32>() {
+						let sample = sample?;
+						stereo_samples.push(Frame::from_i32(
+							sample,
+							sample,
+							spec.bits_per_sample.into(),
+						));
+					}
+				}
+			},
+			2 => match spec.sample_format {
+				hound::SampleFormat::Float => {
+					let mut iter = reader.samples::<f32>();
+					while let (Some(left), Some(right)) = (iter.next(), iter.next()) {
+						stereo_samples.push(Frame::new(left?, right?));
+					}
+				}
+				hound::SampleFormat::Int => {
+					let mut iter = reader.samples::<i32>();
+					while let (Some(left), Some(right)) = (iter.next(), iter.next()) {
+						stereo_samples.push(Frame::from_i32(
+							left?,
+							right?,
+							spec.bits_per_sample.into(),
+						));
+					}
+				}
+			},
+			_ => return Err(AudioError::UnsupportedChannelConfiguration),
+		}
+		Ok(Self::from_frames(
+			reader.spec().sample_rate,
+			stereo_samples,
+			settings,
+		))
+	}
+
+	/// Decodes a sound from a file.
+	///
+	/// The audio format will be automatically determined from the file extension.
+	#[cfg(any(feature = "mp3", feature = "ogg", feature = "flac", feature = "wav"))]
+	pub fn from_file<P>(path: P, settings: PlayableSettings) -> AudioResult<Self>
+	where
+		P: AsRef<Path>,
+	{
+		if let Some(extension) = path.as_ref().extension() {
+			if let Some(extension_str) = extension.to_str() {
+				match extension_str {
+					#[cfg(feature = "mp3")]
+					"mp3" => return Self::from_mp3_file(path, settings),
+					#[cfg(feature = "ogg")]
+					"ogg" => return Self::from_ogg_file(path, settings),
+					#[cfg(feature = "flac")]
+					"flac" => return Self::from_flac_file(path, settings),
+					#[cfg(feature = "wav")]
+					"wav" => return Self::from_wav_file(path, settings),
+					_ => {}
+				}
+			}
+		}
+		Err(AudioError::UnsupportedAudioFileFormat)
 	}
 }
 

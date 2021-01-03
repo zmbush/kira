@@ -1,10 +1,10 @@
-use crate::{group::GroupSet, mixer::TrackId};
+use crate::{group::GroupSet, mixer::TrackLabel};
 
 /// Settings for a looping [`Arrangement`](super::Arrangement).
 #[derive(Debug, Clone)]
 pub struct LoopArrangementSettings {
 	/// The track instances of this arrangement will play on by default.
-	pub default_track: TrackId,
+	pub default_track: TrackLabel,
 	/// Whether the arrangement should have a "cool off" period after playing
 	/// before it can be played again, and if so, the duration
 	/// of that cool off period.
@@ -35,7 +35,7 @@ impl LoopArrangementSettings {
 	}
 
 	/// Sets the track instances of this arrangement will play on by default.
-	pub fn default_track<T: Into<TrackId>>(self, track: T) -> Self {
+	pub fn default_track<T: Into<TrackLabel>>(self, track: T) -> Self {
 		Self {
 			default_track: track.into(),
 			..self
@@ -70,7 +70,7 @@ impl LoopArrangementSettings {
 impl Default for LoopArrangementSettings {
 	fn default() -> Self {
 		Self {
-			default_track: TrackId::Main,
+			default_track: Default::default(),
 			cooldown: Some(0.0001),
 			semantic_duration: None,
 			groups: GroupSet::new(),

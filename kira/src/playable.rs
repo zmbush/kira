@@ -5,16 +5,16 @@ use indexmap::IndexMap;
 use crate::{
 	arrangement::{Arrangement, ArrangementHandle, ArrangementId},
 	group::{groups::Groups, GroupId, GroupSet},
-	mixer::{TrackId, TrackIdTrait},
+	mixer::{TrackId, TrackIdTrait, TrackLabel},
 	sound::{Sound, SoundHandle, SoundId},
 	Frame,
 };
 
 /// Settings for a [`Playable`](Playable) item.
 #[derive(Debug, Clone)]
-pub struct PlayableSettings<TrackIdType: TrackIdTrait = TrackId> {
+pub struct PlayableSettings {
 	/// The track instances of this item will play on by default.
-	pub default_track: TrackIdType,
+	pub default_track: TrackLabel,
 	/// Whether the item should have a "cool off" period after playing
 	/// before it can be played again, and if so, the duration
 	/// of that cool off period.
@@ -42,14 +42,14 @@ pub struct PlayableSettings<TrackIdType: TrackIdTrait = TrackId> {
 	pub groups: GroupSet,
 }
 
-impl<TrackIdType: TrackIdTrait> PlayableSettings<TrackIdType> {
+impl PlayableSettings {
 	/// Creates a new `PlayableSettings` with the default settings.
 	pub fn new() -> Self {
 		Self::default()
 	}
 
 	/// Sets the track instances of this item will play on by default.
-	pub fn default_track(self, track: impl Into<TrackIdType>) -> Self {
+	pub fn default_track(self, track: impl Into<TrackLabel>) -> Self {
 		Self {
 			default_track: track.into(),
 			..self
@@ -89,7 +89,7 @@ impl<TrackIdType: TrackIdTrait> PlayableSettings<TrackIdType> {
 	}
 }
 
-impl<TrackIdType: TrackIdTrait> Default for PlayableSettings<TrackIdType> {
+impl Default for PlayableSettings {
 	fn default() -> Self {
 		Self {
 			default_track: Default::default(),

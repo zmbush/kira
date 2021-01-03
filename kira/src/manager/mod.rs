@@ -8,6 +8,7 @@ use std::hash::Hash;
 use backend::Backend;
 #[cfg(feature = "benchmarking")]
 pub use backend::Backend;
+use bimap::BiMap;
 use flume::{Receiver, Sender};
 
 use crate::{
@@ -19,7 +20,7 @@ use crate::{
 	error::{AudioError, AudioResult},
 	group::{Group, GroupHandle, GroupId, GroupSet},
 	metronome::{Metronome, MetronomeHandle, MetronomeId, MetronomeSettings},
-	mixer::{SubTrackId, Track, TrackHandle, TrackId, TrackSettings},
+	mixer::{SubTrackId, Track, TrackHandle, TrackId, TrackIdTrait, TrackLabel, TrackSettings},
 	parameter::{ParameterHandle, ParameterId},
 	resource::Resource,
 	sequence::{Sequence, SequenceInstanceHandle, SequenceInstanceId, SequenceInstanceSettings},
@@ -88,6 +89,7 @@ pub struct AudioManager {
 	quit_signal_sender: Sender<bool>,
 	command_sender: CommandSender,
 	resources_to_unload_receiver: Receiver<Resource>,
+	sub_track_names: BiMap<String, SubTrackId>,
 	// holds the stream if it has been created on the main thread
 	// so it can live for as long as the audio manager
 	_stream: Option<Stream>,
@@ -155,6 +157,7 @@ impl AudioManager {
 			quit_signal_sender,
 			command_sender,
 			resources_to_unload_receiver,
+			sub_track_names: BiMap::new(),
 			_stream: stream,
 		})
 	}
@@ -237,6 +240,7 @@ impl AudioManager {
 			quit_signal_sender,
 			command_sender,
 			resources_to_unload_receiver,
+			sub_track_names: BiMap::new(),
 			_stream: None,
 		};
 		let backend = Backend::new(SAMPLE_RATE, settings, command_receiver, unloader);
@@ -244,7 +248,8 @@ impl AudioManager {
 	}
 
 	/// Sends a sound to the audio thread and returns a handle to the sound.
-	pub fn add_sound(&mut self, sound: Sound) -> AudioResult<SoundHandle> {
+	pub fn add_sound(&mut self, sound: Sound<TrackLabel>) -> AudioResult<SoundHandle> {
+		let sound = Sound::from_generic_sound(sound, &self.sub_track_names)?;
 		let id = SoundId::new(&sound);
 		self.command_sender
 			.push(ResourceCommand::AddSound(id, sound).into())?;
@@ -256,13 +261,12 @@ impl AudioManager {
 	/// This is a shortcut for constructing the sound manually and adding it
 	/// using [`AudioManager::add_sound`].
 	#[cfg(any(feature = "mp3", feature = "ogg", feature = "flac", feature = "wav"))]
-	pub fn load_sound<P: AsRef<std::path::Path>>(
+	pub fn load_sound(
 		&mut self,
-		path: P,
+		path: impl AsRef<std::path::Path>,
 		settings: crate::playable::PlayableSettings,
 	) -> AudioResult<SoundHandle> {
-		let sound = Sound::from_file(path, settings)?;
-		self.add_sound(sound)
+		self.add_sound(Sound::from_file(path, settings)?)
 	}
 
 	pub fn remove_sound(&mut self, id: impl Into<SoundId>) -> AudioResult<()> {
@@ -271,7 +275,12 @@ impl AudioManager {
 	}
 
 	/// Sends a arrangement to the audio thread and returns a handle to the arrangement.
-	pub fn add_arrangement(&mut self, arrangement: Arrangement) -> AudioResult<ArrangementHandle> {
+	pub fn add_arrangement(
+		&mut self,
+		arrangement: Arrangement<TrackLabel>,
+	) -> AudioResult<ArrangementHandle> {
+		let arrangement =
+			Arrangement::from_generic_arrangement(arrangement, &self.sub_track_names)?;
 		let id = ArrangementId::new(&arrangement);
 		self.command_sender
 			.push(ResourceCommand::AddArrangement(id, arrangement).into())?;
@@ -339,8 +348,22 @@ impl AudioManager {
 		Ok(TrackHandle::new(id.into(), self.command_sender.clone()))
 	}
 
+	/// Creates a mixer sub-track and assigns it a name.
+	pub fn add_named_sub_track(
+		&mut self,
+		name: String,
+		settings: TrackSettings,
+	) -> AudioResult<TrackHandle> {
+		let id = SubTrackId::new();
+		self.sub_track_names.insert(name, id);
+		self.command_sender
+			.push(MixerCommand::AddSubTrack(id, Track::new(settings)).into())?;
+		Ok(TrackHandle::new(id.into(), self.command_sender.clone()))
+	}
+
 	/// Removes a sub-track from the mixer.
 	pub fn remove_sub_track(&mut self, id: SubTrackId) -> AudioResult<()> {
+		self.sub_track_names.remove_by_right(&id);
 		self.command_sender
 			.push(MixerCommand::RemoveSubTrack(id.into()).into())
 	}

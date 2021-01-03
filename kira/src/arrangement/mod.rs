@@ -126,6 +126,7 @@ mod handle;
 mod id;
 mod settings;
 
+use bimap::BiMap;
 pub use clip::SoundClip;
 pub use handle::ArrangementHandle;
 pub use id::ArrangementId;
@@ -135,18 +136,18 @@ use indexmap::IndexMap;
 
 use crate::{
 	group::{groups::Groups, GroupId, GroupSet},
-	mixer::TrackId,
+	mixer::{SubTrackId, TrackId, TrackIdTrait, TrackLabel},
 	playable::PlayableSettings,
 	sound::{Sound, SoundId},
-	Frame,
+	AudioResult, Frame,
 };
 
 /// An arrangement of sound clips to play at specific times.
 #[derive(Debug, Clone)]
-pub struct Arrangement {
+pub struct Arrangement<TrackIdType: TrackIdTrait = TrackId> {
 	clips: Vec<SoundClip>,
 	duration: f64,
-	default_track: TrackId,
+	default_track: TrackIdType,
 	cooldown: Option<f64>,
 	semantic_duration: Option<f64>,
 	default_loop_start: Option<f64>,
@@ -154,7 +155,63 @@ pub struct Arrangement {
 	cooldown_timer: f64,
 }
 
-impl Arrangement {
+impl<TrackIdType: TrackIdTrait> Arrangement<TrackIdType> {
+	/// Adds a sound clip to the arrangement.
+	pub fn add_clip(&mut self, clip: SoundClip) -> &mut Self {
+		self.duration = self.duration.max(clip.clip_time_range.1);
+		self.clips.push(clip);
+		self
+	}
+
+	/// Gets the duration of the arrangement.
+	///
+	/// The duration is always the end of the last playing sound clip.
+	pub fn duration(&self) -> f64 {
+		self.duration
+	}
+
+	/// Gets the frame at the given position of the arrangement.
+	pub(crate) fn get_frame_at_position(
+		&self,
+		position: f64,
+		sounds: &IndexMap<SoundId, Sound>,
+	) -> Frame {
+		let mut frame = Frame::from_mono(0.0);
+		for clip in &self.clips {
+			frame += clip.get_frame_at_position(position, sounds);
+		}
+		frame
+	}
+
+	/// Starts the cooldown timer for the arrangement.
+	pub(crate) fn start_cooldown(&mut self) {
+		if let Some(cooldown) = self.cooldown {
+			self.cooldown_timer = cooldown;
+		}
+	}
+
+	/// Updates the cooldown timer for the arrangement.
+	pub(crate) fn update_cooldown(&mut self, dt: f64) {
+		if self.cooldown_timer > 0.0 {
+			self.cooldown_timer -= dt;
+		}
+	}
+
+	/// Gets whether the arrangement is currently "cooling down".
+	///
+	/// If it is, a new instance of the arrangement should not
+	/// be started until the timer is up.
+	pub(crate) fn cooling_down(&self) -> bool {
+		self.cooldown_timer > 0.0
+	}
+
+	/// Returns if this arrangement is in the group with the given ID.
+	pub(crate) fn is_in_group(&self, id: GroupId, all_groups: &Groups) -> bool {
+		self.groups.has_ancestor(id, all_groups)
+	}
+}
+
+impl Arrangement<TrackLabel> {
 	/// Creates a new, empty arrangement.
 	pub fn new(settings: PlayableSettings) -> Self {
 		Self {
@@ -225,58 +282,22 @@ impl Arrangement {
 			);
 		arrangement
 	}
+}
 
-	/// Adds a sound clip to the arrangement.
-	pub fn add_clip(&mut self, clip: SoundClip) -> &mut Self {
-		self.duration = self.duration.max(clip.clip_time_range.1);
-		self.clips.push(clip);
-		self
-	}
-
-	/// Gets the duration of the arrangement.
-	///
-	/// The duration is always the end of the last playing sound clip.
-	pub fn duration(&self) -> f64 {
-		self.duration
-	}
-
-	/// Gets the frame at the given position of the arrangement.
-	pub(crate) fn get_frame_at_position(
-		&self,
-		position: f64,
-		sounds: &IndexMap<SoundId, Sound>,
-	) -> Frame {
-		let mut frame = Frame::from_mono(0.0);
-		for clip in &self.clips {
-			frame += clip.get_frame_at_position(position, sounds);
-		}
-		frame
-	}
-
-	/// Starts the cooldown timer for the arrangement.
-	pub(crate) fn start_cooldown(&mut self) {
-		if let Some(cooldown) = self.cooldown {
-			self.cooldown_timer = cooldown;
-		}
-	}
-
-	/// Updates the cooldown timer for the arrangement.
-	pub(crate) fn update_cooldown(&mut self, dt: f64) {
-		if self.cooldown_timer > 0.0 {
-			self.cooldown_timer -= dt;
-		}
-	}
-
-	/// Gets whether the arrangement is currently "cooling down".
-	///
-	/// If it is, a new instance of the arrangement should not
-	/// be started until the timer is up.
-	pub(crate) fn cooling_down(&self) -> bool {
-		self.cooldown_timer > 0.0
-	}
-
-	/// Returns if this arrangement is in the group with the given ID.
-	pub(crate) fn is_in_group(&self, id: GroupId, all_groups: &Groups) -> bool {
-		self.groups.has_ancestor(id, all_groups)
+impl Arrangement<TrackId> {
+	pub(crate) fn from_generic_arrangement<T: TrackIdTrait>(
+		arrangement: Arrangement<T>,
+		sub_track_names: &BiMap<String, SubTrackId>,
+	) -> AudioResult<Self> {
+		Ok(Self {
+			clips: arrangement.clips,
+			duration: arrangement.duration,
+			default_track: arrangement.default_track.to_track_id(sub_track_names)?,
+			cooldown: arrangement.cooldown,
+			semantic_duration: arrangement.semantic_duration,
+			default_loop_start: arrangement.default_loop_start,
+			groups: arrangement.groups,
+			cooldown_timer: arrangement.cooldown_timer,
+		})
 	}
 }
