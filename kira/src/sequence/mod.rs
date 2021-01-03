@@ -157,6 +157,7 @@
 mod handle;
 mod instance;
 
+use bimap::BiMap;
 pub use handle::SequenceInstanceHandle;
 pub(crate) use instance::SequenceInstance;
 pub use instance::{SequenceInstanceId, SequenceInstanceState};
@@ -167,7 +168,7 @@ use std::{hash::Hash, vec};
 
 use crate::{
 	command::sender::CommandSender,
-	group::{groups::Groups, GroupId, InternalGroupSet},
+	group::{groups::Groups, GroupId, GroupIdTrait, GroupLabel, GroupSet},
 	instance::{
 		InstanceId, InstanceSettings, PauseInstanceSettings, ResumeInstanceSettings,
 		StopInstanceSettings,
@@ -240,17 +241,17 @@ impl<CustomEvent: Clone + Eq + Hash> From<SequenceOutputCommand> for SequenceSte
 #[derive(Debug, Clone)]
 pub struct SequenceSettings {
 	/// The groups this sequence will belong to.
-	pub groups: InternalGroupSet,
+	pub groups: GroupSet,
 }
 
 impl SequenceSettings {
 	/// Creates a new `SequenceSettings` with the default settings.
-	/* pub fn new() -> Self {
+	pub fn new() -> Self {
 		Self::default()
-	} */
+	}
 
 	/// Sets the groups this sequence will belong to.
-	pub fn groups(self, groups: impl Into<InternalGroupSet>) -> Self {
+	pub fn groups(self, groups: impl Into<GroupSet>) -> Self {
 		Self {
 			groups: groups.into(),
 			..self
@@ -258,36 +259,27 @@ impl SequenceSettings {
 	}
 }
 
-/* impl Default for SequenceSettings {
+impl Default for SequenceSettings {
 	fn default() -> Self {
 		Self {
-			groups: InternalGroupSet::new(),
+			groups: GroupSet::new(),
 		}
 	}
-} */
+}
 
 /// A series of steps to execute at certain times.
 #[derive(Debug, Clone)]
-pub struct Sequence<CustomEvent: Clone + Eq + Hash = ()> {
+pub struct Sequence<CustomEvent: Clone + Eq + Hash = (), GroupIdType: GroupIdTrait = GroupLabel> {
 	steps: Vec<SequenceStep<CustomEvent>>,
 	loop_point: Option<usize>,
-	groups: InternalGroupSet,
+	groups: GroupSet<GroupIdType>,
 }
 
-impl<CustomEvent: Clone + Eq + Hash> Sequence<CustomEvent> {
-	/// Creates a new sequence.
-	pub fn new(settings: SequenceSettings) -> Self {
-		Self {
-			steps: vec![],
-			loop_point: None,
-			groups: settings.groups,
-		}
-	}
-
+impl<CustomEvent: Clone + Eq + Hash, GroupIdType: GroupIdTrait> Sequence<CustomEvent, GroupIdType> {
 	fn with_components(
 		steps: Vec<SequenceStep<CustomEvent>>,
 		loop_point: Option<usize>,
-		groups: InternalGroupSet,
+		groups: GroupSet<GroupIdType>,
 	) -> Self {
 		Self {
 			steps,
@@ -523,11 +515,25 @@ impl<CustomEvent: Clone + Eq + Hash> Sequence<CustomEvent> {
 		}
 		events
 	}
+}
+
+impl<CustomEvent: Clone + Eq + Hash> Sequence<CustomEvent> {
+	/// Creates a new sequence.
+	pub fn new(settings: SequenceSettings) -> Self {
+		Self {
+			steps: vec![],
+			loop_point: None,
+			groups: settings.groups,
+		}
+	}
 
 	/// Converts this sequence into a sequence where the custom events
 	/// are indices corresponding to an event. Returns both the sequence
 	/// and a mapping of indices to events.
-	fn into_raw_sequence(&self) -> (RawSequence, IndexSet<CustomEvent>) {
+	fn into_raw_sequence(
+		self,
+		group_names: &BiMap<String, GroupId>,
+	) -> AudioResult<(RawSequence, IndexSet<CustomEvent>)> {
 		let events = self.all_events();
 		let raw_steps = self
 			.steps
@@ -544,19 +550,24 @@ impl<CustomEvent: Clone + Eq + Hash> Sequence<CustomEvent> {
 				}
 			})
 			.collect();
-		(
-			Sequence::with_components(raw_steps, self.loop_point, self.groups.clone()),
+		Ok((
+			Sequence::with_components(
+				raw_steps,
+				self.loop_point,
+				self.groups.to_internal_group_set(group_names)?,
+			),
 			events,
-		)
+		))
 	}
 
 	pub(crate) fn create_instance(
-		&self,
+		self,
+		group_names: &BiMap<String, GroupId>,
 		settings: SequenceInstanceSettings,
 		id: SequenceInstanceId,
 		command_sender: CommandSender,
-	) -> (SequenceInstance, SequenceInstanceHandle<CustomEvent>) {
-		let (raw_sequence, events) = self.into_raw_sequence();
+	) -> AudioResult<(SequenceInstance, SequenceInstanceHandle<CustomEvent>)> {
+		let (raw_sequence, events) = self.into_raw_sequence(group_names)?;
 		let (event_sender, event_receiver) = flume::bounded(settings.event_queue_capacity);
 		let instance = SequenceInstance::new(raw_sequence, event_sender, settings.metronome);
 		let handle = SequenceInstanceHandle::new(
@@ -566,16 +577,11 @@ impl<CustomEvent: Clone + Eq + Hash> Sequence<CustomEvent> {
 			event_receiver,
 			events,
 		);
-		(instance, handle)
-	}
-
-	/// Returns if this sequence is in the group with the given ID.
-	pub(crate) fn is_in_group(&self, id: GroupId, all_groups: &Groups) -> bool {
-		self.groups.has_ancestor(id, all_groups)
+		Ok((instance, handle))
 	}
 }
 
-pub(crate) type RawSequence = Sequence<usize>;
+pub(crate) type RawSequence = Sequence<usize, GroupId>;
 
 impl RawSequence {
 	fn convert_ids(steps: &mut Vec<SequenceStep<usize>>, old_id: InstanceId, new_id: InstanceId) {
@@ -651,5 +657,10 @@ impl RawSequence {
 				_ => {}
 			}
 		}
+	}
+
+	/// Returns if this sequence is in the group with the given ID.
+	pub(crate) fn is_in_group(&self, id: GroupId, all_groups: &Groups) -> bool {
+		self.groups.has_ancestor(id, all_groups)
 	}
 }

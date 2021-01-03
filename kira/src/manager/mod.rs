@@ -18,7 +18,7 @@ use crate::{
 		ParameterCommand, ResourceCommand, SequenceCommand,
 	},
 	error::{AudioError, AudioResult},
-	group::{Group, GroupHandle, GroupId, GroupSet, InternalGroupSet},
+	group::{Group, GroupHandle, GroupId, GroupSet},
 	metronome::{Metronome, MetronomeHandle, MetronomeId, MetronomeSettings},
 	mixer::{SubTrackId, Track, TrackHandle, TrackId, TrackSettings},
 	parameter::{ParameterHandle, ParameterId},
@@ -324,8 +324,12 @@ impl AudioManager {
 	) -> Result<SequenceInstanceHandle<CustomEvent>, AudioError> {
 		sequence.validate()?;
 		let id = SequenceInstanceId::new();
-		let (instance, handle) =
-			sequence.create_instance(settings, id, self.command_sender.clone());
+		let (instance, handle) = sequence.create_instance(
+			&self.group_names,
+			settings,
+			id,
+			self.command_sender.clone(),
+		)?;
 		self.command_sender
 			.push(SequenceCommand::StartSequenceInstance(id, instance).into())?;
 		Ok(handle)
