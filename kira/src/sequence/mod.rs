@@ -245,9 +245,9 @@ pub struct SequenceSettings {
 
 impl SequenceSettings {
 	/// Creates a new `SequenceSettings` with the default settings.
-	pub fn new() -> Self {
+	/* pub fn new() -> Self {
 		Self::default()
-	}
+	} */
 
 	/// Sets the groups this sequence will belong to.
 	pub fn groups(self, groups: impl Into<InternalGroupSet>) -> Self {
@@ -258,13 +258,13 @@ impl SequenceSettings {
 	}
 }
 
-impl Default for SequenceSettings {
+/* impl Default for SequenceSettings {
 	fn default() -> Self {
 		Self {
 			groups: InternalGroupSet::new(),
 		}
 	}
-}
+} */
 
 /// A series of steps to execute at certain times.
 #[derive(Debug, Clone)]
