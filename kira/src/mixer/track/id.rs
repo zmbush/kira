@@ -108,6 +108,12 @@ impl From<&TrackHandle> for TrackLabel {
 	}
 }
 
+impl From<&str> for TrackLabel {
+	fn from(name: &str) -> Self {
+		Self::Name(name.into())
+	}
+}
+
 impl From<String> for TrackLabel {
 	fn from(name: String) -> Self {
 		Self::Name(name)

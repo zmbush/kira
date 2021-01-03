@@ -348,11 +348,11 @@ impl AudioManager {
 	/// Creates a mixer sub-track and assigns it a name.
 	pub fn add_named_sub_track(
 		&mut self,
-		name: String,
+		name: impl Into<String>,
 		settings: TrackSettings,
 	) -> AudioResult<TrackHandle> {
 		let id = SubTrackId::new();
-		self.sub_track_names.insert(name, id);
+		self.sub_track_names.insert(name.into(), id);
 		self.command_sender
 			.push(MixerCommand::AddSubTrack(id, Track::new(settings)).into())?;
 		Ok(TrackHandle::new(id.into(), self.command_sender.clone()))
