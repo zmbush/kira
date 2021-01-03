@@ -18,7 +18,7 @@ use crate::{
 		ParameterCommand, ResourceCommand, SequenceCommand,
 	},
 	error::{AudioError, AudioResult},
-	group::{Group, GroupHandle, GroupId, InternalGroupSet},
+	group::{Group, GroupHandle, GroupId, GroupSet, InternalGroupSet},
 	metronome::{Metronome, MetronomeHandle, MetronomeId, MetronomeSettings},
 	mixer::{SubTrackId, Track, TrackHandle, TrackId, TrackSettings},
 	parameter::{ParameterHandle, ParameterId},
@@ -90,6 +90,7 @@ pub struct AudioManager {
 	command_sender: CommandSender,
 	resources_to_unload_receiver: Receiver<Resource>,
 	sub_track_names: BiMap<String, SubTrackId>,
+	group_names: BiMap<String, GroupId>,
 	// holds the stream if it has been created on the main thread
 	// so it can live for as long as the audio manager
 	_stream: Option<Stream>,
@@ -158,6 +159,7 @@ impl AudioManager {
 			command_sender,
 			resources_to_unload_receiver,
 			sub_track_names: BiMap::new(),
+			group_names: BiMap::new(),
 			_stream: stream,
 		})
 	}
@@ -241,6 +243,7 @@ impl AudioManager {
 			command_sender,
 			resources_to_unload_receiver,
 			sub_track_names: BiMap::new(),
+			group_names: BiMap::new(),
 			_stream: None,
 		};
 		let backend = Backend::new(SAMPLE_RATE, settings, command_receiver, unloader);
@@ -249,7 +252,8 @@ impl AudioManager {
 
 	/// Sends a sound to the audio thread and returns a handle to the sound.
 	pub fn add_sound(&mut self, sound: Sound) -> AudioResult<SoundHandle> {
-		let sound = InternalSound::from_public_sound(sound, &self.sub_track_names)?;
+		let sound =
+			InternalSound::from_public_sound(sound, &self.sub_track_names, &self.group_names)?;
 		let id = SoundId::new(&sound);
 		self.command_sender
 			.push(ResourceCommand::AddSound(id, sound).into())?;
@@ -276,8 +280,11 @@ impl AudioManager {
 
 	/// Sends a arrangement to the audio thread and returns a handle to the arrangement.
 	pub fn add_arrangement(&mut self, arrangement: Arrangement) -> AudioResult<ArrangementHandle> {
-		let arrangement =
-			InternalArrangement::from_public_arrangement(arrangement, &self.sub_track_names)?;
+		let arrangement = InternalArrangement::from_public_arrangement(
+			arrangement,
+			&self.sub_track_names,
+			&self.group_names,
+		)?;
 		let id = ArrangementId::new(&arrangement);
 		self.command_sender
 			.push(ResourceCommand::AddArrangement(id, arrangement).into())?;
@@ -366,18 +373,34 @@ impl AudioManager {
 	}
 
 	/// Adds a group.
-	pub fn add_group(&mut self, parent_groups: InternalGroupSet) -> AudioResult<GroupHandle> {
+	pub fn add_group(&mut self, parent_groups: GroupSet) -> AudioResult<GroupHandle> {
 		let id = GroupId::new();
-		let group = Group::new(parent_groups);
+		let group = Group::new(parent_groups.to_internal_group_set(&self.group_names)?);
 		self.command_sender
 			.push(GroupCommand::AddGroup(id, group).into())?;
 		Ok(GroupHandle::new(id, self.command_sender.clone()))
 	}
 
+	/// Adds a group and assigns it a name.
+	pub fn add_named_group(
+		&mut self,
+		name: impl Into<String>,
+		parent_groups: GroupSet,
+	) -> AudioResult<GroupHandle> {
+		let id = GroupId::new();
+		let group = Group::new(parent_groups.to_internal_group_set(&self.group_names)?);
+		self.command_sender
+			.push(GroupCommand::AddGroup(id, group).into())?;
+		self.group_names.insert(name.into(), id);
+		Ok(GroupHandle::new(id, self.command_sender.clone()))
+	}
+
 	/// Removes a group.
 	pub fn remove_group(&mut self, id: impl Into<GroupId>) -> AudioResult<()> {
+		let id = id.into();
+		self.group_names.remove_by_right(&id);
 		self.command_sender
-			.push(GroupCommand::RemoveGroup(id.into()).into())
+			.push(GroupCommand::RemoveGroup(id).into())
 	}
 }
 
