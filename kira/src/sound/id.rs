@@ -5,7 +5,7 @@ use std::{
 
 use crate::mixer::TrackId;
 
-use super::{Sound, SoundHandle};
+use super::{InternalSound, SoundHandle};
 
 static NEXT_SOUND_INDEX: AtomicUsize = AtomicUsize::new(0);
 
@@ -23,7 +23,7 @@ pub struct SoundId {
 }
 
 impl SoundId {
-	pub(crate) fn new(sound: &Sound) -> Self {
+	pub(crate) fn new(sound: &InternalSound) -> Self {
 		let index = NEXT_SOUND_INDEX.fetch_add(1, Ordering::Relaxed);
 		Self {
 			index,

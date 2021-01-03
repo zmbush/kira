@@ -20,11 +20,11 @@ use crate::{
 	error::{AudioError, AudioResult},
 	group::{Group, GroupHandle, GroupId, GroupSet},
 	metronome::{Metronome, MetronomeHandle, MetronomeId, MetronomeSettings},
-	mixer::{SubTrackId, Track, TrackHandle, TrackId, TrackIdTrait, TrackLabel, TrackSettings},
+	mixer::{SubTrackId, Track, TrackHandle, TrackId, TrackLabel, TrackSettings},
 	parameter::{ParameterHandle, ParameterId},
 	resource::Resource,
 	sequence::{Sequence, SequenceInstanceHandle, SequenceInstanceId, SequenceInstanceSettings},
-	sound::{Sound, SoundHandle, SoundId},
+	sound::{InternalSound, Sound, SoundHandle, SoundId},
 };
 use cpal::{
 	traits::{DeviceTrait, HostTrait, StreamTrait},
@@ -248,8 +248,8 @@ impl AudioManager {
 	}
 
 	/// Sends a sound to the audio thread and returns a handle to the sound.
-	pub fn add_sound(&mut self, sound: Sound<TrackLabel>) -> AudioResult<SoundHandle> {
-		let sound = Sound::from_generic_sound(sound, &self.sub_track_names)?;
+	pub fn add_sound(&mut self, sound: Sound) -> AudioResult<SoundHandle> {
+		let sound = InternalSound::from_public_sound(sound, &self.sub_track_names)?;
 		let id = SoundId::new(&sound);
 		self.command_sender
 			.push(ResourceCommand::AddSound(id, sound).into())?;

@@ -5,11 +5,11 @@ use kira::{
 	instance::InstanceHandle,
 	manager::{AudioManager, AudioManagerSettings, Backend},
 	playable::PlayableSettings,
-	sound::Sound,
+	sound::InternalSound,
 	Frame,
 };
 
-fn create_test_sound(num_samples: usize) -> Sound {
+fn create_test_sound(num_samples: usize) -> InternalSound {
 	const SAMPLE_RATE: u32 = 48000;
 	let mut sine_samples = vec![];
 	let mut phase = 0.0;
@@ -17,7 +17,7 @@ fn create_test_sound(num_samples: usize) -> Sound {
 		sine_samples.push(Frame::from_mono((phase * 2.0 * PI).sin()));
 		phase += 440.0 / SAMPLE_RATE as f32;
 	}
-	Sound::from_frames(
+	InternalSound::from_frames(
 		SAMPLE_RATE,
 		sine_samples,
 		PlayableSettings {

@@ -5,7 +5,7 @@ use crate::{
 	instance::{Instance, InstanceId, StopInstanceSettings},
 	parameter::Parameters,
 	playable::Playable,
-	sound::{Sound, SoundId},
+	sound::{InternalSound, SoundId},
 };
 use indexmap::IndexMap;
 
@@ -35,7 +35,7 @@ impl Instances {
 	pub fn run_command(
 		&mut self,
 		command: InstanceCommand,
-		sounds: &mut IndexMap<SoundId, Sound>,
+		sounds: &mut IndexMap<SoundId, InternalSound>,
 		arrangements: &mut IndexMap<ArrangementId, Arrangement>,
 		groups: &Groups,
 	) {
@@ -163,7 +163,7 @@ impl Instances {
 	pub fn process(
 		&mut self,
 		dt: f64,
-		sounds: &IndexMap<SoundId, Sound>,
+		sounds: &IndexMap<SoundId, InternalSound>,
 		arrangements: &IndexMap<ArrangementId, Arrangement>,
 		mixer: &mut Mixer,
 		parameters: &Parameters,

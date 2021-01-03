@@ -5,11 +5,11 @@ use crate::{
 	metronome::Metronome,
 	mixer::{effect_slot::EffectSlot, Track},
 	sequence::SequenceInstance,
-	sound::Sound,
+	sound::InternalSound,
 };
 
 pub(crate) enum Resource {
-	Sound(Sound),
+	Sound(InternalSound),
 	Arrangement(Arrangement),
 	SequenceInstance(SequenceInstance),
 	Track(Track),

@@ -15,7 +15,7 @@ use crate::{
 	parameter::Parameters,
 	playable::Playable,
 	resource::Resource,
-	sound::{Sound, SoundId},
+	sound::{InternalSound, SoundId},
 };
 use flume::{Receiver, Sender};
 use indexmap::IndexMap;
@@ -25,7 +25,7 @@ use streams::Streams;
 
 pub struct Backend {
 	dt: f64,
-	sounds: IndexMap<SoundId, Sound>,
+	sounds: IndexMap<SoundId, InternalSound>,
 	arrangements: IndexMap<ArrangementId, Arrangement>,
 	command_queue: Vec<Command>,
 	command_receiver: Receiver<Command>,

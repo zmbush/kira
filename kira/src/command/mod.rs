@@ -15,14 +15,14 @@ use crate::{
 	parameter::{ParameterId, Tween},
 	playable::Playable,
 	sequence::{SequenceInstance, SequenceInstanceId},
-	sound::{Sound, SoundId},
+	sound::{InternalSound, SoundId},
 	tempo::Tempo,
 	value::Value,
 };
 
 #[derive(Debug, Clone)]
 pub(crate) enum ResourceCommand {
-	AddSound(SoundId, Sound),
+	AddSound(SoundId, InternalSound),
 	RemoveSound(SoundId),
 	AddArrangement(ArrangementId, Arrangement),
 	RemoveArrangement(ArrangementId),

@@ -24,7 +24,7 @@ use std::{fs::File, path::Path};
 
 /// A piece of audio that can be played by an [`AudioManager`](crate::manager::AudioManager).
 #[derive(Clone)]
-pub struct Sound<TrackIdType: TrackIdTrait = TrackId> {
+pub struct Sound<TrackIdType: TrackIdTrait = TrackLabel> {
 	sample_rate: u32,
 	frames: Vec<Frame>,
 	duration: f64,
@@ -35,6 +35,8 @@ pub struct Sound<TrackIdType: TrackIdTrait = TrackId> {
 	groups: GroupSet,
 	cooldown_timer: f64,
 }
+
+pub(crate) type InternalSound = Sound<TrackId>;
 
 impl<TrackIdType: TrackIdTrait> Sound<TrackIdType> {
 	/// Gets the default track that the sound plays on.
@@ -119,7 +121,7 @@ impl<TrackIdType: TrackIdTrait> Sound<TrackIdType> {
 	}
 }
 
-impl Sound<TrackLabel> {
+impl Sound {
 	/// Creates a new sound from raw sample data.
 	pub fn from_frames(sample_rate: u32, frames: Vec<Frame>, settings: PlayableSettings) -> Self {
 		let duration = frames.len() as f64 / sample_rate as f64;
@@ -344,9 +346,9 @@ impl Sound<TrackLabel> {
 	}
 }
 
-impl Sound<TrackId> {
-	pub(crate) fn from_generic_sound<T: TrackIdTrait>(
-		sound: Sound<T>,
+impl InternalSound {
+	pub(crate) fn from_public_sound(
+		sound: Sound,
 		sub_track_names: &BiMap<String, SubTrackId>,
 	) -> AudioResult<Self> {
 		Ok(Self {

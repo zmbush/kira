@@ -74,7 +74,7 @@ use crate::{
 	parameter::{Parameter, Parameters},
 	playable::Playable,
 	sequence::SequenceInstanceId,
-	sound::{Sound, SoundId},
+	sound::{InternalSound, SoundId},
 	value::CachedValue,
 	value::Value,
 };
@@ -203,7 +203,7 @@ impl Instance {
 	pub fn is_in_group(
 		&self,
 		parent_id: GroupId,
-		sounds: &IndexMap<SoundId, Sound>,
+		sounds: &IndexMap<SoundId, InternalSound>,
 		arrangements: &IndexMap<ArrangementId, Arrangement>,
 		groups: &Groups,
 	) -> bool {
@@ -311,7 +311,7 @@ impl Instance {
 
 	pub fn get_sample(
 		&self,
-		sounds: &IndexMap<SoundId, Sound>,
+		sounds: &IndexMap<SoundId, InternalSound>,
 		arrangements: &IndexMap<ArrangementId, Arrangement>,
 	) -> Frame {
 		let mut out = self

@@ -138,7 +138,7 @@ use crate::{
 	group::{groups::Groups, GroupId, GroupSet},
 	mixer::{SubTrackId, TrackId, TrackIdTrait, TrackLabel},
 	playable::PlayableSettings,
-	sound::{Sound, SoundId},
+	sound::{InternalSound, SoundId},
 	AudioResult, Frame,
 };
 
@@ -174,7 +174,7 @@ impl<TrackIdType: TrackIdTrait> Arrangement<TrackIdType> {
 	pub(crate) fn get_frame_at_position(
 		&self,
 		position: f64,
-		sounds: &IndexMap<SoundId, Sound>,
+		sounds: &IndexMap<SoundId, InternalSound>,
 	) -> Frame {
 		let mut frame = Frame::from_mono(0.0);
 		for clip in &self.clips {

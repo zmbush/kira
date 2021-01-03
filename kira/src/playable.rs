@@ -5,8 +5,8 @@ use indexmap::IndexMap;
 use crate::{
 	arrangement::{Arrangement, ArrangementHandle, ArrangementId},
 	group::{groups::Groups, GroupId, GroupSet},
-	mixer::{TrackId, TrackIdTrait, TrackLabel},
-	sound::{Sound, SoundHandle, SoundId},
+	mixer::{TrackId, TrackLabel},
+	sound::{InternalSound, SoundHandle, SoundId},
 	Frame,
 };
 
@@ -149,7 +149,7 @@ impl Playable {
 	pub(crate) fn get_frame_at_position(
 		&self,
 		position: f64,
-		sounds: &IndexMap<SoundId, Sound>,
+		sounds: &IndexMap<SoundId, InternalSound>,
 		arrangements: &IndexMap<ArrangementId, Arrangement>,
 	) -> Frame {
 		match self {
@@ -173,7 +173,7 @@ impl Playable {
 	pub(crate) fn is_in_group(
 		&self,
 		parent_id: GroupId,
-		sounds: &IndexMap<SoundId, Sound>,
+		sounds: &IndexMap<SoundId, InternalSound>,
 		arrangements: &IndexMap<ArrangementId, Arrangement>,
 		groups: &Groups,
 	) -> bool {
