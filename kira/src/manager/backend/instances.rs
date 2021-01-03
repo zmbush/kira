@@ -1,5 +1,5 @@
 use crate::{
-	arrangement::{Arrangement, ArrangementId},
+	arrangement::{ArrangementId, InternalArrangement},
 	command::InstanceCommand,
 	group::groups::Groups,
 	instance::{Instance, InstanceId, StopInstanceSettings},
@@ -36,7 +36,7 @@ impl Instances {
 		&mut self,
 		command: InstanceCommand,
 		sounds: &mut IndexMap<SoundId, InternalSound>,
-		arrangements: &mut IndexMap<ArrangementId, Arrangement>,
+		arrangements: &mut IndexMap<ArrangementId, InternalArrangement>,
 		groups: &Groups,
 	) {
 		match command {
@@ -164,7 +164,7 @@ impl Instances {
 		&mut self,
 		dt: f64,
 		sounds: &IndexMap<SoundId, InternalSound>,
-		arrangements: &IndexMap<ArrangementId, Arrangement>,
+		arrangements: &IndexMap<ArrangementId, InternalArrangement>,
 		mixer: &mut Mixer,
 		parameters: &Parameters,
 	) {

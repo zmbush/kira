@@ -3,7 +3,7 @@
 use indexmap::IndexMap;
 
 use crate::{
-	arrangement::{Arrangement, ArrangementHandle, ArrangementId},
+	arrangement::{ArrangementHandle, ArrangementId, InternalArrangement},
 	group::{groups::Groups, GroupId, GroupSet},
 	mixer::{TrackId, TrackLabel},
 	sound::{InternalSound, SoundHandle, SoundId},
@@ -150,7 +150,7 @@ impl Playable {
 		&self,
 		position: f64,
 		sounds: &IndexMap<SoundId, InternalSound>,
-		arrangements: &IndexMap<ArrangementId, Arrangement>,
+		arrangements: &IndexMap<ArrangementId, InternalArrangement>,
 	) -> Frame {
 		match self {
 			Playable::Sound(id) => {
@@ -174,7 +174,7 @@ impl Playable {
 		&self,
 		parent_id: GroupId,
 		sounds: &IndexMap<SoundId, InternalSound>,
-		arrangements: &IndexMap<ArrangementId, Arrangement>,
+		arrangements: &IndexMap<ArrangementId, InternalArrangement>,
 		groups: &Groups,
 	) -> bool {
 		match self {

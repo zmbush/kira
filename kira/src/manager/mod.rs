@@ -12,7 +12,7 @@ use bimap::BiMap;
 use flume::{Receiver, Sender};
 
 use crate::{
-	arrangement::{Arrangement, ArrangementHandle, ArrangementId},
+	arrangement::{Arrangement, ArrangementHandle, ArrangementId, InternalArrangement},
 	command::{
 		sender::CommandSender, Command, GroupCommand, MetronomeCommand, MixerCommand,
 		ParameterCommand, ResourceCommand, SequenceCommand,
@@ -20,7 +20,7 @@ use crate::{
 	error::{AudioError, AudioResult},
 	group::{Group, GroupHandle, GroupId, GroupSet},
 	metronome::{Metronome, MetronomeHandle, MetronomeId, MetronomeSettings},
-	mixer::{SubTrackId, Track, TrackHandle, TrackId, TrackLabel, TrackSettings},
+	mixer::{SubTrackId, Track, TrackHandle, TrackId, TrackSettings},
 	parameter::{ParameterHandle, ParameterId},
 	resource::Resource,
 	sequence::{Sequence, SequenceInstanceHandle, SequenceInstanceId, SequenceInstanceSettings},
@@ -275,12 +275,9 @@ impl AudioManager {
 	}
 
 	/// Sends a arrangement to the audio thread and returns a handle to the arrangement.
-	pub fn add_arrangement(
-		&mut self,
-		arrangement: Arrangement<TrackLabel>,
-	) -> AudioResult<ArrangementHandle> {
+	pub fn add_arrangement(&mut self, arrangement: Arrangement) -> AudioResult<ArrangementHandle> {
 		let arrangement =
-			Arrangement::from_generic_arrangement(arrangement, &self.sub_track_names)?;
+			InternalArrangement::from_public_arrangement(arrangement, &self.sub_track_names)?;
 		let id = ArrangementId::new(&arrangement);
 		self.command_sender
 			.push(ResourceCommand::AddArrangement(id, arrangement).into())?;

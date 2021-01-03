@@ -144,7 +144,7 @@ use crate::{
 
 /// An arrangement of sound clips to play at specific times.
 #[derive(Debug, Clone)]
-pub struct Arrangement<TrackIdType: TrackIdTrait = TrackId> {
+pub struct Arrangement<TrackIdType: TrackIdTrait = TrackLabel> {
 	clips: Vec<SoundClip>,
 	duration: f64,
 	default_track: TrackIdType,
@@ -154,6 +154,8 @@ pub struct Arrangement<TrackIdType: TrackIdTrait = TrackId> {
 	groups: GroupSet,
 	cooldown_timer: f64,
 }
+
+pub(crate) type InternalArrangement = Arrangement<TrackId>;
 
 impl<TrackIdType: TrackIdTrait> Arrangement<TrackIdType> {
 	/// Adds a sound clip to the arrangement.
@@ -211,7 +213,7 @@ impl<TrackIdType: TrackIdTrait> Arrangement<TrackIdType> {
 	}
 }
 
-impl Arrangement<TrackLabel> {
+impl Arrangement {
 	/// Creates a new, empty arrangement.
 	pub fn new(settings: PlayableSettings) -> Self {
 		Self {
@@ -284,9 +286,9 @@ impl Arrangement<TrackLabel> {
 	}
 }
 
-impl Arrangement<TrackId> {
-	pub(crate) fn from_generic_arrangement<T: TrackIdTrait>(
-		arrangement: Arrangement<T>,
+impl InternalArrangement {
+	pub(crate) fn from_public_arrangement(
+		arrangement: Arrangement,
 		sub_track_names: &BiMap<String, SubTrackId>,
 	) -> AudioResult<Self> {
 		Ok(Self {

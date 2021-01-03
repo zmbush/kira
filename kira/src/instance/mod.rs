@@ -67,7 +67,7 @@ pub use settings::*;
 use indexmap::IndexMap;
 
 use crate::{
-	arrangement::{Arrangement, ArrangementId},
+	arrangement::{ArrangementId, InternalArrangement},
 	frame::Frame,
 	group::{groups::Groups, GroupId},
 	mixer::TrackId,
@@ -204,7 +204,7 @@ impl Instance {
 		&self,
 		parent_id: GroupId,
 		sounds: &IndexMap<SoundId, InternalSound>,
-		arrangements: &IndexMap<ArrangementId, Arrangement>,
+		arrangements: &IndexMap<ArrangementId, InternalArrangement>,
 		groups: &Groups,
 	) -> bool {
 		self.playable
@@ -312,7 +312,7 @@ impl Instance {
 	pub fn get_sample(
 		&self,
 		sounds: &IndexMap<SoundId, InternalSound>,
-		arrangements: &IndexMap<ArrangementId, Arrangement>,
+		arrangements: &IndexMap<ArrangementId, InternalArrangement>,
 	) -> Frame {
 		let mut out = self
 			.playable

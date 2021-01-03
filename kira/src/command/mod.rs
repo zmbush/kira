@@ -1,7 +1,7 @@
 pub(crate) mod sender;
 
 use crate::{
-	arrangement::{Arrangement, ArrangementId},
+	arrangement::{ArrangementId, InternalArrangement},
 	audio_stream::{AudioStream, AudioStreamId},
 	group::{Group, GroupId},
 	instance::{
@@ -24,7 +24,7 @@ use crate::{
 pub(crate) enum ResourceCommand {
 	AddSound(SoundId, InternalSound),
 	RemoveSound(SoundId),
-	AddArrangement(ArrangementId, Arrangement),
+	AddArrangement(ArrangementId, InternalArrangement),
 	RemoveArrangement(ArrangementId),
 }
 

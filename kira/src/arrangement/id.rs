@@ -5,7 +5,7 @@ use std::{
 
 use crate::mixer::TrackId;
 
-use super::{Arrangement, ArrangementHandle};
+use super::{ArrangementHandle, InternalArrangement};
 
 static NEXT_ARRANGEMENT_INDEX: AtomicUsize = AtomicUsize::new(0);
 
@@ -26,7 +26,7 @@ pub struct ArrangementId {
 }
 
 impl ArrangementId {
-	pub(crate) fn new(arrangement: &Arrangement) -> Self {
+	pub(crate) fn new(arrangement: &InternalArrangement) -> Self {
 		let index = NEXT_ARRANGEMENT_INDEX.fetch_add(1, Ordering::Relaxed);
 		Self {
 			index,

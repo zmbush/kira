@@ -7,7 +7,7 @@ use self::mixer::Mixer;
 
 use super::AudioManagerSettings;
 use crate::{
-	arrangement::{Arrangement, ArrangementId},
+	arrangement::{ArrangementId, InternalArrangement},
 	command::{Command, ResourceCommand},
 	frame::Frame,
 	group::groups::Groups,
@@ -26,7 +26,7 @@ use streams::Streams;
 pub struct Backend {
 	dt: f64,
 	sounds: IndexMap<SoundId, InternalSound>,
-	arrangements: IndexMap<ArrangementId, Arrangement>,
+	arrangements: IndexMap<ArrangementId, InternalArrangement>,
 	command_queue: Vec<Command>,
 	command_receiver: Receiver<Command>,
 	unloader: Sender<Resource>,

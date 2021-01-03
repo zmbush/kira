@@ -1,5 +1,5 @@
 use crate::{
-	arrangement::Arrangement,
+	arrangement::InternalArrangement,
 	audio_stream::AudioStream,
 	group::Group,
 	metronome::Metronome,
@@ -10,7 +10,7 @@ use crate::{
 
 pub(crate) enum Resource {
 	Sound(InternalSound),
-	Arrangement(Arrangement),
+	Arrangement(InternalArrangement),
 	SequenceInstance(SequenceInstance),
 	Track(Track),
 	EffectSlot(EffectSlot),
