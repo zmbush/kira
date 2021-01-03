@@ -9,7 +9,7 @@ pub use id::SoundId;
 
 use crate::{
 	frame::Frame,
-	group::{groups::Groups, GroupId, InternalGroupSet},
+	group::{groups::Groups, GroupId, GroupIdTrait, GroupLabel, GroupSet},
 	mixer::{SubTrackId, TrackId, TrackIdTrait, TrackLabel},
 	playable::PlayableSettings,
 };
@@ -24,7 +24,7 @@ use std::{fs::File, path::Path};
 
 /// A piece of audio that can be played by an [`AudioManager`](crate::manager::AudioManager).
 #[derive(Clone)]
-pub struct Sound<TrackIdType: TrackIdTrait = TrackLabel> {
+pub struct Sound<TrackIdType: TrackIdTrait = TrackLabel, GroupIdType: GroupIdTrait = GroupLabel> {
 	sample_rate: u32,
 	frames: Vec<Frame>,
 	duration: f64,
@@ -32,13 +32,13 @@ pub struct Sound<TrackIdType: TrackIdTrait = TrackLabel> {
 	cooldown: Option<f64>,
 	semantic_duration: Option<f64>,
 	default_loop_start: Option<f64>,
-	groups: InternalGroupSet,
+	groups: GroupSet<GroupIdType>,
 	cooldown_timer: f64,
 }
 
-pub(crate) type InternalSound = Sound<TrackId>;
+pub(crate) type InternalSound = Sound<TrackId, GroupId>;
 
-impl<TrackIdType: TrackIdTrait> Sound<TrackIdType> {
+impl<TrackIdType: TrackIdTrait, GroupIdType: GroupIdTrait> Sound<TrackIdType, GroupIdType> {
 	/// Gets the default track that the sound plays on.
 	pub fn default_track(&self) -> &TrackIdType {
 		&self.default_track
@@ -113,11 +113,6 @@ impl<TrackIdType: TrackIdTrait> Sound<TrackIdType> {
 	/// be started until the timer is up.
 	pub(crate) fn cooling_down(&self) -> bool {
 		self.cooldown_timer > 0.0
-	}
-
-	/// Returns if this sound is in the group with the given ID.
-	pub(crate) fn is_in_group(&self, id: GroupId, all_groups: &Groups) -> bool {
-		self.groups.has_ancestor(id, all_groups)
 	}
 }
 
@@ -350,6 +345,7 @@ impl InternalSound {
 	pub(crate) fn from_public_sound(
 		sound: Sound,
 		sub_track_names: &BiMap<String, SubTrackId>,
+		group_names: &BiMap<String, GroupId>,
 	) -> AudioResult<Self> {
 		Ok(Self {
 			sample_rate: sound.sample_rate,
@@ -359,13 +355,20 @@ impl InternalSound {
 			cooldown: sound.cooldown,
 			semantic_duration: sound.semantic_duration,
 			default_loop_start: sound.default_loop_start,
-			groups: sound.groups,
+			groups: sound.groups.to_internal_group_set(group_names)?,
 			cooldown_timer: sound.cooldown_timer,
 		})
 	}
+
+	/// Returns if this sound is in the group with the given ID.
+	pub(crate) fn is_in_group(&self, id: GroupId, all_groups: &Groups) -> bool {
+		self.groups.has_ancestor(id, all_groups)
+	}
 }
 
-impl<TrackIdType: TrackIdTrait> Debug for Sound<TrackIdType> {
+impl<TrackIdType: TrackIdTrait, GroupIdType: GroupIdTrait> Debug
+	for Sound<TrackIdType, GroupIdType>
+{
 	fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
 		f.debug_struct(&format!("Sound ({} frames)", self.frames.len()))
 			.field("sample_rate", &self.sample_rate)

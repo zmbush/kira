@@ -135,7 +135,7 @@ pub use settings::LoopArrangementSettings;
 use indexmap::IndexMap;
 
 use crate::{
-	group::{groups::Groups, GroupId, InternalGroupSet},
+	group::{groups::Groups, GroupId, GroupIdTrait, GroupLabel, GroupSet},
 	mixer::{SubTrackId, TrackId, TrackIdTrait, TrackLabel},
 	playable::PlayableSettings,
 	sound::{InternalSound, SoundId},
@@ -144,20 +144,23 @@ use crate::{
 
 /// An arrangement of sound clips to play at specific times.
 #[derive(Debug, Clone)]
-pub struct Arrangement<TrackIdType: TrackIdTrait = TrackLabel> {
+pub struct Arrangement<
+	TrackIdType: TrackIdTrait = TrackLabel,
+	GroupIdType: GroupIdTrait = GroupLabel,
+> {
 	clips: Vec<SoundClip>,
 	duration: f64,
 	default_track: TrackIdType,
 	cooldown: Option<f64>,
 	semantic_duration: Option<f64>,
 	default_loop_start: Option<f64>,
-	groups: InternalGroupSet,
+	groups: GroupSet<GroupIdType>,
 	cooldown_timer: f64,
 }
 
-pub(crate) type InternalArrangement = Arrangement<TrackId>;
+pub(crate) type InternalArrangement = Arrangement<TrackId, GroupId>;
 
-impl<TrackIdType: TrackIdTrait> Arrangement<TrackIdType> {
+impl<TrackIdType: TrackIdTrait, GroupIdType: GroupIdTrait> Arrangement<TrackIdType, GroupIdType> {
 	/// Adds a sound clip to the arrangement.
 	pub fn add_clip(&mut self, clip: SoundClip) -> &mut Self {
 		self.duration = self.duration.max(clip.clip_time_range.1);
@@ -205,11 +208,6 @@ impl<TrackIdType: TrackIdTrait> Arrangement<TrackIdType> {
 	/// be started until the timer is up.
 	pub(crate) fn cooling_down(&self) -> bool {
 		self.cooldown_timer > 0.0
-	}
-
-	/// Returns if this arrangement is in the group with the given ID.
-	pub(crate) fn is_in_group(&self, id: GroupId, all_groups: &Groups) -> bool {
-		self.groups.has_ancestor(id, all_groups)
 	}
 }
 
@@ -290,6 +288,7 @@ impl InternalArrangement {
 	pub(crate) fn from_public_arrangement(
 		arrangement: Arrangement,
 		sub_track_names: &BiMap<String, SubTrackId>,
+		group_names: &BiMap<String, GroupId>,
 	) -> AudioResult<Self> {
 		Ok(Self {
 			clips: arrangement.clips,
@@ -298,8 +297,13 @@ impl InternalArrangement {
 			cooldown: arrangement.cooldown,
 			semantic_duration: arrangement.semantic_duration,
 			default_loop_start: arrangement.default_loop_start,
-			groups: arrangement.groups,
+			groups: arrangement.groups.to_internal_group_set(group_names)?,
 			cooldown_timer: arrangement.cooldown_timer,
 		})
+	}
+
+	/// Returns if this arrangement is in the group with the given ID.
+	pub(crate) fn is_in_group(&self, id: GroupId, all_groups: &Groups) -> bool {
+		self.groups.has_ancestor(id, all_groups)
 	}
 }

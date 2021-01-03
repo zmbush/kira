@@ -1,4 +1,4 @@
-use crate::{group::InternalGroupSet, mixer::TrackLabel};
+use crate::{group::GroupSet, mixer::TrackLabel};
 
 /// Settings for a looping [`Arrangement`](super::Arrangement).
 #[derive(Debug, Clone)]
@@ -25,7 +25,7 @@ pub struct LoopArrangementSettings {
 	/// used as the default end point when looping the arrangement.
 	pub semantic_duration: Option<f64>,
 	/// The groups this arrangement belongs to.
-	pub groups: InternalGroupSet,
+	pub groups: GroupSet,
 }
 
 impl LoopArrangementSettings {
@@ -59,7 +59,7 @@ impl LoopArrangementSettings {
 	}
 
 	/// Sets the group this arrangement belongs to.
-	pub fn groups(self, groups: impl Into<InternalGroupSet>) -> Self {
+	pub fn groups(self, groups: impl Into<GroupSet>) -> Self {
 		Self {
 			groups: groups.into(),
 			..self
@@ -73,7 +73,7 @@ impl Default for LoopArrangementSettings {
 			default_track: Default::default(),
 			cooldown: Some(0.0001),
 			semantic_duration: None,
-			groups: InternalGroupSet::new(),
+			groups: GroupSet::new(),
 		}
 	}
 }

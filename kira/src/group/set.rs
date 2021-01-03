@@ -28,20 +28,20 @@ impl GroupSet {
 	pub fn contains(&self, id: impl Into<GroupLabel>) -> bool {
 		self.0.contains(&id.into())
 	}
+
+	pub(crate) fn to_internal_group_set(
+		self,
+		group_names: &BiMap<String, GroupId>,
+	) -> AudioResult<InternalGroupSet> {
+		let mut set = IndexSet::new();
+		for label in self.0 {
+			set.insert(label.to_group_id(group_names)?);
+		}
+		Ok(GroupSet(set))
+	}
 }
 
 impl InternalGroupSet {
-	pub(crate) fn from_public_group_set(
-		group_set: GroupSet,
-		group_names: &BiMap<String, GroupId>,
-	) -> AudioResult<Self> {
-		let mut set = IndexSet::new();
-		for label in &group_set.0 {
-			set.insert(label.to_group_id(group_names)?);
-		}
-		Ok(Self(set))
-	}
-
 	/// Returns true if one of the groups in the set has a specified
 	/// group as an ancestor or is that group itself.
 	pub(crate) fn has_ancestor(&self, ancestor: GroupId, all_groups: &Groups) -> bool {
