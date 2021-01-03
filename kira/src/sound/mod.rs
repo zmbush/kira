@@ -3,13 +3,14 @@
 mod handle;
 mod id;
 
+use bimap::BiMap;
 pub use handle::SoundHandle;
 pub use id::SoundId;
 
 use crate::{
 	frame::Frame,
 	group::{groups::Groups, GroupId, GroupSet},
-	mixer::TrackId,
+	mixer::{SubTrackId, TrackId, TrackIdTrait},
 	playable::PlayableSettings,
 };
 
@@ -23,11 +24,11 @@ use std::{fs::File, path::Path};
 
 /// A piece of audio that can be played by an [`AudioManager`](crate::manager::AudioManager).
 #[derive(Clone)]
-pub struct Sound {
+pub struct Sound<TrackIdType: TrackIdTrait = TrackId> {
 	sample_rate: u32,
 	frames: Vec<Frame>,
 	duration: f64,
-	default_track: TrackId,
+	default_track: TrackIdType,
 	cooldown: Option<f64>,
 	semantic_duration: Option<f64>,
 	default_loop_start: Option<f64>,
@@ -35,9 +36,13 @@ pub struct Sound {
 	cooldown_timer: f64,
 }
 
-impl Sound {
+impl<TrackIdType: TrackIdTrait> Sound<TrackIdType> {
 	/// Creates a new sound from raw sample data.
-	pub fn from_frames(sample_rate: u32, frames: Vec<Frame>, settings: PlayableSettings) -> Self {
+	pub fn from_frames(
+		sample_rate: u32,
+		frames: Vec<Frame>,
+		settings: PlayableSettings<TrackIdType>,
+	) -> Self {
 		let duration = frames.len() as f64 / sample_rate as f64;
 		Self {
 			sample_rate,
@@ -54,7 +59,7 @@ impl Sound {
 
 	/// Decodes a sound from an mp3 file.
 	#[cfg(feature = "mp3")]
-	pub fn from_mp3_file<P>(path: P, settings: PlayableSettings) -> AudioResult<Self>
+	pub fn from_mp3_file<P>(path: P, settings: PlayableSettings<TrackIdType>) -> AudioResult<Self>
 	where
 		P: AsRef<Path>,
 	{
@@ -113,7 +118,7 @@ impl Sound {
 
 	/// Decodes a sound from an ogg file.
 	#[cfg(feature = "ogg")]
-	pub fn from_ogg_file<P>(path: P, settings: PlayableSettings) -> AudioResult<Self>
+	pub fn from_ogg_file<P>(path: P, settings: PlayableSettings<TrackIdType>) -> AudioResult<Self>
 	where
 		P: AsRef<Path>,
 	{
@@ -146,7 +151,7 @@ impl Sound {
 
 	/// Decodes a sound from a flac file.
 	#[cfg(feature = "flac")]
-	pub fn from_flac_file<P>(path: P, settings: PlayableSettings) -> AudioResult<Self>
+	pub fn from_flac_file<P>(path: P, settings: PlayableSettings<TrackIdType>) -> AudioResult<Self>
 	where
 		P: AsRef<Path>,
 	{
@@ -181,7 +186,7 @@ impl Sound {
 
 	/// Decodes a sound from a wav file.
 	#[cfg(feature = "wav")]
-	pub fn from_wav_file<P>(path: P, settings: PlayableSettings) -> AudioResult<Self>
+	pub fn from_wav_file<P>(path: P, settings: PlayableSettings<TrackIdType>) -> AudioResult<Self>
 	where
 		P: AsRef<Path>,
 	{
@@ -237,7 +242,7 @@ impl Sound {
 	///
 	/// The audio format will be automatically determined from the file extension.
 	#[cfg(any(feature = "mp3", feature = "ogg", feature = "flac", feature = "wav"))]
-	pub fn from_file<P>(path: P, settings: PlayableSettings) -> AudioResult<Self>
+	pub fn from_file<P>(path: P, settings: PlayableSettings<TrackIdType>) -> AudioResult<Self>
 	where
 		P: AsRef<Path>,
 	{
@@ -260,8 +265,8 @@ impl Sound {
 	}
 
 	/// Gets the default track that the sound plays on.
-	pub fn default_track(&self) -> TrackId {
-		self.default_track
+	pub fn default_track(&self) -> &TrackIdType {
+		&self.default_track
 	}
 
 	/// Gets the duration of the sound (in seconds).
@@ -341,7 +346,26 @@ impl Sound {
 	}
 }
 
-impl Debug for Sound {
+impl Sound<TrackId> {
+	pub(crate) fn from_generic_sound<T: TrackIdTrait>(
+		sound: Sound<T>,
+		sub_track_names: &BiMap<String, SubTrackId>,
+	) -> AudioResult<Self> {
+		Ok(Self {
+			sample_rate: sound.sample_rate,
+			frames: sound.frames,
+			duration: sound.duration,
+			default_track: sound.default_track.to_track_id(sub_track_names)?,
+			cooldown: sound.cooldown,
+			semantic_duration: sound.semantic_duration,
+			default_loop_start: sound.default_loop_start,
+			groups: sound.groups,
+			cooldown_timer: sound.cooldown_timer,
+		})
+	}
+}
+
+impl<TrackIdType: TrackIdTrait> Debug for Sound<TrackIdType> {
 	fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
 		f.debug_struct(&format!("Sound ({} frames)", self.frames.len()))
 			.field("sample_rate", &self.sample_rate)

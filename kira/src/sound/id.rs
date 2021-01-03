@@ -28,7 +28,7 @@ impl SoundId {
 		Self {
 			index,
 			duration: sound.duration(),
-			default_track: sound.default_track(),
+			default_track: *sound.default_track(),
 			semantic_duration: sound.semantic_duration(),
 			default_loop_start: sound.default_loop_start(),
 		}

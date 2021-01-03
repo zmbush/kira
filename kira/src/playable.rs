@@ -5,16 +5,16 @@ use indexmap::IndexMap;
 use crate::{
 	arrangement::{Arrangement, ArrangementHandle, ArrangementId},
 	group::{groups::Groups, GroupId, GroupSet},
-	mixer::TrackId,
+	mixer::{TrackId, TrackIdTrait},
 	sound::{Sound, SoundHandle, SoundId},
 	Frame,
 };
 
 /// Settings for a [`Playable`](Playable) item.
 #[derive(Debug, Clone)]
-pub struct PlayableSettings {
+pub struct PlayableSettings<TrackIdType: TrackIdTrait = TrackId> {
 	/// The track instances of this item will play on by default.
-	pub default_track: TrackId,
+	pub default_track: TrackIdType,
 	/// Whether the item should have a "cool off" period after playing
 	/// before it can be played again, and if so, the duration
 	/// of that cool off period.
@@ -42,14 +42,14 @@ pub struct PlayableSettings {
 	pub groups: GroupSet,
 }
 
-impl PlayableSettings {
+impl<TrackIdType: TrackIdTrait> PlayableSettings<TrackIdType> {
 	/// Creates a new `PlayableSettings` with the default settings.
 	pub fn new() -> Self {
 		Self::default()
 	}
 
 	/// Sets the track instances of this item will play on by default.
-	pub fn default_track<T: Into<TrackId>>(self, track: T) -> Self {
+	pub fn default_track(self, track: impl Into<TrackIdType>) -> Self {
 		Self {
 			default_track: track.into(),
 			..self
@@ -89,10 +89,10 @@ impl PlayableSettings {
 	}
 }
 
-impl Default for PlayableSettings {
+impl<TrackIdType: TrackIdTrait> Default for PlayableSettings<TrackIdType> {
 	fn default() -> Self {
 		Self {
-			default_track: TrackId::Main,
+			default_track: Default::default(),
 			cooldown: Some(0.0001),
 			semantic_duration: None,
 			default_loop_start: None,
