@@ -4,7 +4,7 @@ use crate::{
 		Instance, InstanceHandle, InstanceId, InstanceSettings, PauseInstanceSettings,
 		ResumeInstanceSettings, StopInstanceSettings,
 	},
-	mixer::TrackIndex,
+	mixer::TrackId,
 	AudioResult,
 };
 
@@ -29,7 +29,7 @@ impl SoundHandle {
 		self.id.duration()
 	}
 
-	pub fn default_track(&self) -> TrackIndex {
+	pub fn default_track(&self) -> TrackId {
 		self.id.default_track()
 	}
 

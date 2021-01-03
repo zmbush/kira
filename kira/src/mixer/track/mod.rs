@@ -13,7 +13,7 @@ use super::{
 	effect_slot::EffectSlot,
 };
 
-static NEXT_SUB_TRACK_INDEX: AtomicUsize = AtomicUsize::new(0);
+static NEXT_SUB_TRACK_ID: AtomicUsize = AtomicUsize::new(0);
 
 /**
 A unique identifier for a sub-track.
@@ -28,14 +28,14 @@ pub struct SubTrackId {
 
 impl SubTrackId {
 	pub(crate) fn new() -> Self {
-		let index = NEXT_SUB_TRACK_INDEX.fetch_add(1, Ordering::Relaxed);
+		let index = NEXT_SUB_TRACK_ID.fetch_add(1, Ordering::Relaxed);
 		Self { index }
 	}
 }
 
 /// Represents a mixer track.
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-pub enum TrackIndex {
+pub enum TrackId {
 	/// The main track.
 	///
 	/// All sub-tracks are sent to the main track as input,
@@ -50,21 +50,21 @@ pub enum TrackIndex {
 	Sub(SubTrackId),
 }
 
-impl Default for TrackIndex {
+impl Default for TrackId {
 	fn default() -> Self {
 		Self::Main
 	}
 }
 
-impl From<SubTrackId> for TrackIndex {
+impl From<SubTrackId> for TrackId {
 	fn from(id: SubTrackId) -> Self {
 		Self::Sub(id)
 	}
 }
 
-impl From<&TrackHandle> for TrackIndex {
+impl From<&TrackHandle> for TrackId {
 	fn from(handle: &TrackHandle) -> Self {
-		handle.index()
+		handle.id()
 	}
 }
 

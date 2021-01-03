@@ -70,7 +70,7 @@ use crate::{
 	arrangement::{Arrangement, ArrangementId},
 	frame::Frame,
 	group::{groups::Groups, GroupId},
-	mixer::TrackIndex,
+	mixer::TrackId,
 	parameter::{Parameter, Parameters},
 	playable::Playable,
 	sequence::SequenceInstanceId,
@@ -121,7 +121,7 @@ pub enum InstanceState {
 #[derive(Debug, Clone)]
 pub(crate) struct Instance {
 	playable: Playable,
-	track_index: TrackIndex,
+	track_id: TrackId,
 	sequence_id: Option<SequenceInstanceId>,
 	volume: CachedValue<f64>,
 	pitch: CachedValue<f64>,
@@ -152,7 +152,7 @@ impl Instance {
 		}
 		Self {
 			playable,
-			track_index: settings.track.or_default(playable.default_track()),
+			track_id: settings.track.or_default(playable.default_track()),
 			sequence_id,
 			volume: CachedValue::new(settings.volume, 1.0),
 			pitch: CachedValue::new(settings.pitch, 1.0),
@@ -170,8 +170,8 @@ impl Instance {
 		self.playable
 	}
 
-	pub fn track_index(&self) -> TrackIndex {
-		self.track_index
+	pub fn track_id(&self) -> TrackId {
+		self.track_id
 	}
 
 	pub fn sequence_id(&self) -> Option<SequenceInstanceId> {

@@ -3,7 +3,7 @@ use std::{
 	sync::atomic::{AtomicUsize, Ordering},
 };
 
-use crate::mixer::TrackIndex;
+use crate::mixer::TrackId;
 
 use super::{Sound, SoundHandle};
 
@@ -17,7 +17,7 @@ static NEXT_SOUND_INDEX: AtomicUsize = AtomicUsize::new(0);
 pub struct SoundId {
 	index: usize,
 	duration: f64,
-	default_track: TrackIndex,
+	default_track: TrackId,
 	semantic_duration: Option<f64>,
 	default_loop_start: Option<f64>,
 }
@@ -41,7 +41,7 @@ impl SoundId {
 
 	/// Gets the default track that instances of this sound
 	/// will play on.
-	pub fn default_track(&self) -> TrackIndex {
+	pub fn default_track(&self) -> TrackId {
 		self.default_track
 	}
 

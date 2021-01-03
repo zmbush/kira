@@ -19,7 +19,7 @@ use crate::{
 	error::{AudioError, AudioResult},
 	group::{Group, GroupHandle, GroupId, GroupSet},
 	metronome::{Metronome, MetronomeHandle, MetronomeId, MetronomeSettings},
-	mixer::{SubTrackId, Track, TrackHandle, TrackIndex, TrackSettings},
+	mixer::{SubTrackId, Track, TrackHandle, TrackId, TrackSettings},
 	parameter::{ParameterHandle, ParameterId},
 	resource::Resource,
 	sequence::{Sequence, SequenceInstanceHandle, SequenceInstanceId, SequenceInstanceSettings},

@@ -9,7 +9,7 @@ pub use id::SoundId;
 use crate::{
 	frame::Frame,
 	group::{groups::Groups, GroupId, GroupSet},
-	mixer::TrackIndex,
+	mixer::TrackId,
 	playable::PlayableSettings,
 };
 
@@ -27,7 +27,7 @@ pub struct Sound {
 	sample_rate: u32,
 	frames: Vec<Frame>,
 	duration: f64,
-	default_track: TrackIndex,
+	default_track: TrackId,
 	cooldown: Option<f64>,
 	semantic_duration: Option<f64>,
 	default_loop_start: Option<f64>,
@@ -260,7 +260,7 @@ impl Sound {
 	}
 
 	/// Gets the default track that the sound plays on.
-	pub fn default_track(&self) -> TrackIndex {
+	pub fn default_track(&self) -> TrackId {
 		self.default_track
 	}
 

@@ -4,7 +4,7 @@ use indexmap::IndexMap;
 use crate::{
 	command::MixerCommand,
 	frame::Frame,
-	mixer::{SubTrackId, Track, TrackIndex, TrackSettings},
+	mixer::{SubTrackId, Track, TrackId, TrackSettings},
 	parameter::Parameters,
 	resource::Resource,
 };
@@ -29,8 +29,8 @@ impl Mixer {
 			}
 			MixerCommand::AddEffect(index, id, effect, settings) => {
 				let track = match index {
-					TrackIndex::Main => Some(&mut self.main_track),
-					TrackIndex::Sub(id) => self.sub_tracks.get_mut(&id),
+					TrackId::Main => Some(&mut self.main_track),
+					TrackId::Sub(id) => self.sub_tracks.get_mut(&id),
 				};
 				if let Some(track) = track {
 					track.add_effect(id, effect, settings);
@@ -42,9 +42,9 @@ impl Mixer {
 				}
 			}
 			MixerCommand::RemoveEffect(effect_id) => {
-				let track = match effect_id.track_index() {
-					TrackIndex::Main => Some(&mut self.main_track),
-					TrackIndex::Sub(id) => self.sub_tracks.get_mut(&id),
+				let track = match effect_id.track_id() {
+					TrackId::Main => Some(&mut self.main_track),
+					TrackId::Sub(id) => self.sub_tracks.get_mut(&id),
 				};
 				if let Some(track) = track {
 					if let Some(effect_slot) = track.remove_effect(effect_id) {
@@ -55,10 +55,10 @@ impl Mixer {
 		}
 	}
 
-	pub fn add_input(&mut self, index: TrackIndex, input: Frame) {
+	pub fn add_input(&mut self, index: TrackId, input: Frame) {
 		let track = match index {
-			TrackIndex::Main => &mut self.main_track,
-			TrackIndex::Sub(id) => self.sub_tracks.get_mut(&id).unwrap_or(&mut self.main_track),
+			TrackId::Main => &mut self.main_track,
+			TrackId::Sub(id) => self.sub_tracks.get_mut(&id).unwrap_or(&mut self.main_track),
 		};
 		track.add_input(input);
 	}

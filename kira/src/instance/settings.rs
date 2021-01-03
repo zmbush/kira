@@ -1,5 +1,5 @@
 use crate::{
-	mixer::{SubTrackId, TrackIndex},
+	mixer::{SubTrackId, TrackId},
 	parameter::{EaseDirection, Easing, Tween},
 	playable::Playable,
 	Value,
@@ -11,11 +11,11 @@ pub enum InstanceTrackIndex {
 	/// The default track for the sound.
 	DefaultForSound,
 	/// A manually set track index.
-	Custom(TrackIndex),
+	Custom(TrackId),
 }
 
 impl InstanceTrackIndex {
-	pub(super) fn or_default(&self, default: TrackIndex) -> TrackIndex {
+	pub(super) fn or_default(&self, default: TrackId) -> TrackId {
 		match self {
 			InstanceTrackIndex::DefaultForSound => default,
 			InstanceTrackIndex::Custom(index) => *index,
@@ -29,15 +29,15 @@ impl Default for InstanceTrackIndex {
 	}
 }
 
-impl From<TrackIndex> for InstanceTrackIndex {
-	fn from(index: TrackIndex) -> Self {
+impl From<TrackId> for InstanceTrackIndex {
+	fn from(index: TrackId) -> Self {
 		Self::Custom(index)
 	}
 }
 
 impl From<SubTrackId> for InstanceTrackIndex {
 	fn from(id: SubTrackId) -> Self {
-		Self::Custom(TrackIndex::Sub(id))
+		Self::Custom(TrackId::Sub(id))
 	}
 }
 

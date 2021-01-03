@@ -135,7 +135,7 @@ use indexmap::IndexMap;
 
 use crate::{
 	group::{groups::Groups, GroupId, GroupSet},
-	mixer::TrackIndex,
+	mixer::TrackId,
 	playable::PlayableSettings,
 	sound::{Sound, SoundId},
 	Frame,
@@ -146,7 +146,7 @@ use crate::{
 pub struct Arrangement {
 	clips: Vec<SoundClip>,
 	duration: f64,
-	default_track: TrackIndex,
+	default_track: TrackId,
 	cooldown: Option<f64>,
 	semantic_duration: Option<f64>,
 	default_loop_start: Option<f64>,

@@ -5,23 +5,20 @@ use crate::{
 	AudioResult,
 };
 
-use super::TrackIndex;
+use super::TrackId;
 
 pub struct TrackHandle {
-	index: TrackIndex,
+	id: TrackId,
 	command_sender: CommandSender,
 }
 
 impl TrackHandle {
-	pub(crate) fn new(index: TrackIndex, command_sender: CommandSender) -> Self {
-		Self {
-			index,
-			command_sender,
-		}
+	pub(crate) fn new(id: TrackId, command_sender: CommandSender) -> Self {
+		Self { id, command_sender }
 	}
 
-	pub fn index(&self) -> TrackIndex {
-		self.index
+	pub fn id(&self) -> TrackId {
+		self.id
 	}
 
 	pub fn add_effect(
@@ -29,9 +26,9 @@ impl TrackHandle {
 		effect: impl Effect + 'static,
 		settings: EffectSettings,
 	) -> AudioResult<EffectId> {
-		let effect_id = EffectId::new(self.index);
+		let effect_id = EffectId::new(self.id);
 		self.command_sender
-			.push(MixerCommand::AddEffect(self.index, effect_id, Box::new(effect), settings).into())
+			.push(MixerCommand::AddEffect(self.id, effect_id, Box::new(effect), settings).into())
 			.map(|_| effect_id)
 	}
 
@@ -43,7 +40,7 @@ impl TrackHandle {
 	pub fn add_stream(&mut self, stream: impl AudioStream) -> AudioResult<AudioStreamId> {
 		let stream_id = AudioStreamId::new();
 		self.command_sender
-			.push(StreamCommand::AddStream(stream_id, self.index(), Box::new(stream)).into())
+			.push(StreamCommand::AddStream(stream_id, self.id(), Box::new(stream)).into())
 			.map(|()| stream_id)
 	}
 

@@ -10,7 +10,7 @@ use crate::{
 	metronome::{Metronome, MetronomeId},
 	mixer::{
 		effect::{Effect, EffectId, EffectSettings},
-		SubTrackId, Track, TrackIndex,
+		SubTrackId, Track, TrackId,
 	},
 	parameter::{ParameterId, Tween},
 	playable::Playable,
@@ -76,7 +76,7 @@ pub(crate) enum SequenceCommand {
 pub(crate) enum MixerCommand {
 	AddSubTrack(SubTrackId, Track),
 	RemoveSubTrack(SubTrackId),
-	AddEffect(TrackIndex, EffectId, Box<dyn Effect>, EffectSettings),
+	AddEffect(TrackId, EffectId, Box<dyn Effect>, EffectSettings),
 	RemoveEffect(EffectId),
 }
 
@@ -95,7 +95,7 @@ pub(crate) enum GroupCommand {
 
 #[derive(Debug)]
 pub(crate) enum StreamCommand {
-	AddStream(AudioStreamId, TrackIndex, Box<dyn AudioStream>),
+	AddStream(AudioStreamId, TrackId, Box<dyn AudioStream>),
 	RemoveStream(AudioStreamId),
 }
 

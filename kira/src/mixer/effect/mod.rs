@@ -7,7 +7,7 @@ use std::{
 
 use crate::{frame::Frame, parameter::Parameters};
 
-use super::TrackIndex;
+use super::TrackId;
 
 static NEXT_EFFECT_INDEX: AtomicUsize = AtomicUsize::new(0);
 
@@ -20,18 +20,18 @@ when you add an effect to a mixer track with an [`AudioManager`](crate::manager:
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub struct EffectId {
 	index: usize,
-	track_index: TrackIndex,
+	track_id: TrackId,
 }
 
 impl EffectId {
-	pub(crate) fn new(track_index: TrackIndex) -> Self {
+	pub(crate) fn new(track_id: TrackId) -> Self {
 		let index = NEXT_EFFECT_INDEX.fetch_add(1, Ordering::Relaxed);
-		Self { index, track_index }
+		Self { index, track_id }
 	}
 
 	/// Gets the mixer track that this effect applies to.
-	pub fn track_index(&self) -> TrackIndex {
-		self.track_index
+	pub fn track_id(&self) -> TrackId {
+		self.track_id
 	}
 }
 
