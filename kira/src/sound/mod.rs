@@ -9,7 +9,7 @@ pub use id::SoundId;
 
 use crate::{
 	frame::Frame,
-	group::{groups::Groups, GroupId, GroupSet},
+	group::{groups::Groups, GroupId, InternalGroupSet},
 	mixer::{SubTrackId, TrackId, TrackIdTrait, TrackLabel},
 	playable::PlayableSettings,
 };
@@ -32,7 +32,7 @@ pub struct Sound<TrackIdType: TrackIdTrait = TrackLabel> {
 	cooldown: Option<f64>,
 	semantic_duration: Option<f64>,
 	default_loop_start: Option<f64>,
-	groups: GroupSet,
+	groups: InternalGroupSet,
 	cooldown_timer: f64,
 }
 

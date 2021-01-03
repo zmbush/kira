@@ -21,18 +21,19 @@ mod set;
 pub use handle::GroupHandle;
 pub use id::*;
 pub use set::GroupSet;
+pub(crate) use set::InternalGroupSet;
 
 #[derive(Debug, Clone)]
 pub(crate) struct Group {
-	groups: GroupSet,
+	groups: InternalGroupSet,
 }
 
 impl Group {
-	pub fn new(groups: GroupSet) -> Self {
+	pub fn new(groups: InternalGroupSet) -> Self {
 		Self { groups }
 	}
 
-	pub fn groups(&self) -> &GroupSet {
+	pub fn groups(&self) -> &InternalGroupSet {
 		&self.groups
 	}
 }

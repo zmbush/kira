@@ -18,7 +18,7 @@ use crate::{
 		ParameterCommand, ResourceCommand, SequenceCommand,
 	},
 	error::{AudioError, AudioResult},
-	group::{Group, GroupHandle, GroupId, GroupSet},
+	group::{Group, GroupHandle, GroupId, InternalGroupSet},
 	metronome::{Metronome, MetronomeHandle, MetronomeId, MetronomeSettings},
 	mixer::{SubTrackId, Track, TrackHandle, TrackId, TrackSettings},
 	parameter::{ParameterHandle, ParameterId},
@@ -366,7 +366,7 @@ impl AudioManager {
 	}
 
 	/// Adds a group.
-	pub fn add_group(&mut self, parent_groups: GroupSet) -> AudioResult<GroupHandle> {
+	pub fn add_group(&mut self, parent_groups: InternalGroupSet) -> AudioResult<GroupHandle> {
 		let id = GroupId::new();
 		let group = Group::new(parent_groups);
 		self.command_sender

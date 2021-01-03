@@ -167,7 +167,7 @@ use std::{hash::Hash, vec};
 
 use crate::{
 	command::sender::CommandSender,
-	group::{groups::Groups, GroupId, GroupSet},
+	group::{groups::Groups, GroupId, InternalGroupSet},
 	instance::{
 		InstanceId, InstanceSettings, PauseInstanceSettings, ResumeInstanceSettings,
 		StopInstanceSettings,
@@ -240,7 +240,7 @@ impl<CustomEvent: Clone + Eq + Hash> From<SequenceOutputCommand> for SequenceSte
 #[derive(Debug, Clone)]
 pub struct SequenceSettings {
 	/// The groups this sequence will belong to.
-	pub groups: GroupSet,
+	pub groups: InternalGroupSet,
 }
 
 impl SequenceSettings {
@@ -250,7 +250,7 @@ impl SequenceSettings {
 	}
 
 	/// Sets the groups this sequence will belong to.
-	pub fn groups(self, groups: impl Into<GroupSet>) -> Self {
+	pub fn groups(self, groups: impl Into<InternalGroupSet>) -> Self {
 		Self {
 			groups: groups.into(),
 			..self
@@ -261,7 +261,7 @@ impl SequenceSettings {
 impl Default for SequenceSettings {
 	fn default() -> Self {
 		Self {
-			groups: GroupSet::new(),
+			groups: InternalGroupSet::new(),
 		}
 	}
 }
@@ -271,7 +271,7 @@ impl Default for SequenceSettings {
 pub struct Sequence<CustomEvent: Clone + Eq + Hash = ()> {
 	steps: Vec<SequenceStep<CustomEvent>>,
 	loop_point: Option<usize>,
-	groups: GroupSet,
+	groups: InternalGroupSet,
 }
 
 impl<CustomEvent: Clone + Eq + Hash> Sequence<CustomEvent> {
@@ -287,7 +287,7 @@ impl<CustomEvent: Clone + Eq + Hash> Sequence<CustomEvent> {
 	fn with_components(
 		steps: Vec<SequenceStep<CustomEvent>>,
 		loop_point: Option<usize>,
-		groups: GroupSet,
+		groups: InternalGroupSet,
 	) -> Self {
 		Self {
 			steps,

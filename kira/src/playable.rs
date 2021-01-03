@@ -4,7 +4,7 @@ use indexmap::IndexMap;
 
 use crate::{
 	arrangement::{ArrangementHandle, ArrangementId, InternalArrangement},
-	group::{groups::Groups, GroupId, GroupSet},
+	group::{groups::Groups, GroupId, InternalGroupSet},
 	mixer::{TrackId, TrackLabel},
 	sound::{InternalSound, SoundHandle, SoundId},
 	Frame,
@@ -39,7 +39,7 @@ pub struct PlayableSettings {
 	/// the end.
 	pub default_loop_start: Option<f64>,
 	/// The groups this item belongs to.
-	pub groups: GroupSet,
+	pub groups: InternalGroupSet,
 }
 
 impl PlayableSettings {
@@ -81,7 +81,7 @@ impl PlayableSettings {
 	}
 
 	/// Sets the group this item belongs to.
-	pub fn groups(self, groups: impl Into<GroupSet>) -> Self {
+	pub fn groups(self, groups: impl Into<InternalGroupSet>) -> Self {
 		Self {
 			groups: groups.into(),
 			..self
@@ -96,7 +96,7 @@ impl Default for PlayableSettings {
 			cooldown: Some(0.0001),
 			semantic_duration: None,
 			default_loop_start: None,
-			groups: GroupSet::new(),
+			groups: InternalGroupSet::new(),
 		}
 	}
 }

@@ -49,7 +49,7 @@ impl GroupIdTrait for GroupId {
 	}
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum GroupLabel {
 	Id(GroupId),
 	Name(String),
