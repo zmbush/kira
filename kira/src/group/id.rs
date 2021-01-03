@@ -11,7 +11,9 @@ mod private {
 	pub trait Sealed {}
 }
 
-pub trait GroupIdTrait: private::Sealed + Sized + std::fmt::Debug + Clone {
+pub trait GroupIdTrait:
+	private::Sealed + Sized + std::fmt::Debug + Clone + std::hash::Hash + Eq
+{
 	fn to_group_id(self, group_names: &BiMap<String, GroupId>) -> AudioResult<GroupId>;
 }
 
@@ -50,7 +52,12 @@ impl GroupIdTrait for GroupId {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(
+	feature = "serde_support",
+	derive(serde::Serialize, serde::Deserialize)
+)]
 pub enum GroupLabel {
+	#[cfg_attr(feature = "serde_support", serde(skip))]
 	Id(GroupId),
 	Name(String),
 }

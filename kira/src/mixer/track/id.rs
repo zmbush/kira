@@ -37,6 +37,10 @@ pub trait TrackIdTrait: private::Sealed + Sized + std::fmt::Debug + Clone + Defa
 
 /// Represents a mixer track.
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+#[cfg_attr(
+	feature = "serde_support",
+	derive(serde::Serialize, serde::Deserialize)
+)]
 pub enum TrackId {
 	/// The main track.
 	///
@@ -49,6 +53,7 @@ pub enum TrackId {
 	/// and applying effects to certain kinds of sounds.
 	/// For example, in a game, you may have one sub-track
 	/// for sound effects and another for music.
+	#[cfg_attr(feature = "serde_support", serde(skip))]
 	Sub(SubTrackId),
 }
 
@@ -79,6 +84,10 @@ impl TrackIdTrait for TrackId {
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(
+	feature = "serde_support",
+	derive(serde::Serialize, serde::Deserialize)
+)]
 pub enum TrackLabel {
 	Id(TrackId),
 	Name(String),

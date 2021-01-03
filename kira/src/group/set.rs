@@ -6,6 +6,11 @@ use crate::AudioResult;
 use super::{groups::Groups, GroupId, GroupIdTrait, GroupLabel};
 
 #[derive(Debug, Clone)]
+#[cfg_attr(
+	feature = "serde_support",
+	derive(serde::Serialize, serde::Deserialize),
+	serde(transparent)
+)]
 pub struct GroupSet<GroupIdType: GroupIdTrait = GroupLabel>(IndexSet<GroupIdType>);
 
 pub(crate) type InternalGroupSet = GroupSet<GroupId>;
