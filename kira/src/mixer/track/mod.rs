@@ -35,7 +35,7 @@ impl SubTrackId {
 
 /// Represents a mixer track.
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-pub enum TrackIndex {
+pub enum TrackId {
 	/// The main track.
 	///
 	/// All sub-tracks are sent to the main track as input,
@@ -50,21 +50,21 @@ pub enum TrackIndex {
 	Sub(SubTrackId),
 }
 
-impl Default for TrackIndex {
+impl Default for TrackId {
 	fn default() -> Self {
 		Self::Main
 	}
 }
 
-impl From<SubTrackId> for TrackIndex {
+impl From<SubTrackId> for TrackId {
 	fn from(id: SubTrackId) -> Self {
 		Self::Sub(id)
 	}
 }
 
-impl From<&TrackHandle> for TrackIndex {
+impl From<&TrackHandle> for TrackId {
 	fn from(handle: &TrackHandle) -> Self {
-		handle.index()
+		handle.id()
 	}
 }
 

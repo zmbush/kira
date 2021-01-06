@@ -1,7 +1,7 @@
 use crate::{
 	audio_stream::{AudioStream, AudioStreamId},
 	command::StreamCommand,
-	manager::TrackIndex,
+	manager::TrackId,
 	resource::Resource,
 };
 
@@ -11,7 +11,7 @@ use flume::Sender;
 use indexmap::IndexMap;
 
 pub(crate) struct Streams {
-	streams: IndexMap<AudioStreamId, (TrackIndex, Box<dyn AudioStream>)>,
+	streams: IndexMap<AudioStreamId, (TrackId, Box<dyn AudioStream>)>,
 }
 
 impl Streams {
