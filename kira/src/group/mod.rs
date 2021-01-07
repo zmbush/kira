@@ -48,6 +48,36 @@ impl From<&GroupHandle> for GroupId {
 	}
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum GroupLabel {
+	Id(GroupId),
+	Name(String),
+}
+
+impl From<GroupId> for GroupLabel {
+	fn from(id: GroupId) -> Self {
+		Self::Id(id)
+	}
+}
+
+impl From<&GroupHandle> for GroupLabel {
+	fn from(handle: &GroupHandle) -> Self {
+		Self::Id(handle.id())
+	}
+}
+
+impl From<String> for GroupLabel {
+	fn from(name: String) -> Self {
+		Self::Name(name)
+	}
+}
+
+impl From<&str> for GroupLabel {
+	fn from(name: &str) -> Self {
+		Self::Name(name.into())
+	}
+}
+
 #[derive(Debug, Clone)]
 pub(crate) struct Group {
 	groups: GroupSet,
