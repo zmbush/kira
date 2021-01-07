@@ -3,13 +3,14 @@
 mod handle;
 mod id;
 
+use bimap::BiMap;
 pub use handle::SoundHandle;
 pub use id::SoundId;
 
 use crate::{
 	frame::Frame,
 	group::{groups::Groups, GroupId, GroupSet},
-	mixer::TrackId,
+	mixer::{SubTrackId, TrackId, TrackLabel},
 	playable::PlayableSettings,
 };
 
@@ -27,7 +28,7 @@ pub struct Sound {
 	sample_rate: u32,
 	frames: Vec<Frame>,
 	duration: f64,
-	default_track: TrackId,
+	default_track: TrackLabel,
 	cooldown: Option<f64>,
 	semantic_duration: Option<f64>,
 	default_loop_start: Option<f64>,
@@ -260,8 +261,8 @@ impl Sound {
 	}
 
 	/// Gets the default track that the sound plays on.
-	pub fn default_track(&self) -> TrackId {
-		self.default_track
+	pub fn default_track(&self) -> &TrackLabel {
+		&self.default_track
 	}
 
 	/// Gets the duration of the sound (in seconds).
@@ -311,6 +312,23 @@ impl Sound {
 		let c2 = y0 - y1 * 2.5 + y2 * 2.0 - y3 * 0.5;
 		let c3 = (y3 - y0) * 0.5 + (y1 - y2) * 1.5;
 		((c3 * x + c2) * x + c1) * x + c0
+	}
+
+	pub(crate) fn convert_names(
+		&mut self,
+		track_names: &BiMap<String, SubTrackId>,
+	) -> AudioResult<()> {
+		match &mut self.default_track {
+			TrackLabel::Name(name) => {
+				self.default_track = TrackLabel::Id(TrackId::Sub(
+					*track_names
+						.get_by_left(name)
+						.ok_or(AudioError::NoTrackWithName(name.clone()))?,
+				));
+			}
+			_ => {}
+		}
+		Ok(())
 	}
 
 	/// Starts the cooldown timer for the sound.

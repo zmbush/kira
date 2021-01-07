@@ -3,7 +3,7 @@ use std::{
 	sync::atomic::{AtomicUsize, Ordering},
 };
 
-use crate::mixer::TrackId;
+use crate::mixer::{TrackId, TrackLabel};
 
 use super::{Arrangement, ArrangementHandle};
 
@@ -31,7 +31,12 @@ impl ArrangementId {
 		Self {
 			index,
 			duration: arrangement.duration(),
-			default_track: arrangement.default_track,
+			default_track: match arrangement.default_track() {
+				TrackLabel::Id(id) => *id,
+				TrackLabel::Name(_) => panic!(
+					"Default track must be converted from name to ID before creating an ArrangementId. This is an internal bug in Kira."
+				),
+			},
 			semantic_duration: arrangement.semantic_duration,
 			default_loop_start: arrangement.default_loop_start,
 		}

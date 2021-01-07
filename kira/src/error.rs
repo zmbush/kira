@@ -32,6 +32,10 @@ pub enum AudioError {
 	/// Tried to add a sequence whose loop point is after
 	/// all the other steps.
 	InvalidSequenceLoopPoint,
+	/// Tried to use a named track that doesn't exist.
+	NoTrackWithName(String),
+	/// Tried to use a named group that doesn't exist.
+	NoGroupWithName(String),
 	/// An error occurred when interacting with the filesystem.
 	IoError(std::io::Error),
 	/// An error occurred when loading an mp3 file.
@@ -81,6 +85,12 @@ impl Display for AudioError {
 			}
 			AudioError::InvalidSequenceLoopPoint => {
 				f.write_str("The loop point of a sequence cannot be at the very end")
+			}
+			AudioError::NoTrackWithName(name) => {
+				f.write_str(&format!("No track with the name '{}' exists", name))
+			}
+			AudioError::NoGroupWithName(name) => {
+				f.write_str(&format!("No group with the name '{}' exists", name))
 			}
 			AudioError::IoError(error) => f.write_str(&format!("{}", error)),
 			#[cfg(feature = "mp3")]

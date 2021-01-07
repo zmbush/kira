@@ -5,7 +5,7 @@ use indexmap::IndexMap;
 use crate::{
 	arrangement::{Arrangement, ArrangementHandle, ArrangementId},
 	group::{groups::Groups, GroupId, GroupSet},
-	mixer::TrackId,
+	mixer::{TrackId, TrackLabel},
 	sound::{Sound, SoundHandle, SoundId},
 	Frame,
 };
@@ -14,7 +14,7 @@ use crate::{
 #[derive(Debug, Clone)]
 pub struct PlayableSettings {
 	/// The track instances of this item will play on by default.
-	pub default_track: TrackId,
+	pub default_track: TrackLabel,
 	/// Whether the item should have a "cool off" period after playing
 	/// before it can be played again, and if so, the duration
 	/// of that cool off period.
@@ -49,7 +49,7 @@ impl PlayableSettings {
 	}
 
 	/// Sets the track instances of this item will play on by default.
-	pub fn default_track<T: Into<TrackId>>(self, track: T) -> Self {
+	pub fn default_track<T: Into<TrackLabel>>(self, track: T) -> Self {
 		Self {
 			default_track: track.into(),
 			..self
@@ -92,7 +92,7 @@ impl PlayableSettings {
 impl Default for PlayableSettings {
 	fn default() -> Self {
 		Self {
-			default_track: TrackId::Main,
+			default_track: TrackLabel::default(),
 			cooldown: Some(0.0001),
 			semantic_duration: None,
 			default_loop_start: None,

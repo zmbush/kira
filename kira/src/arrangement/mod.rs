@@ -126,6 +126,7 @@ mod handle;
 mod id;
 mod settings;
 
+use bimap::BiMap;
 pub use clip::SoundClip;
 pub use handle::ArrangementHandle;
 pub use id::ArrangementId;
@@ -135,10 +136,10 @@ use indexmap::IndexMap;
 
 use crate::{
 	group::{groups::Groups, GroupId, GroupSet},
-	mixer::TrackId,
+	mixer::{SubTrackId, TrackId, TrackLabel},
 	playable::PlayableSettings,
 	sound::{Sound, SoundId},
-	Frame,
+	AudioError, AudioResult, Frame,
 };
 
 /// An arrangement of sound clips to play at specific times.
@@ -146,7 +147,7 @@ use crate::{
 pub struct Arrangement {
 	clips: Vec<SoundClip>,
 	duration: f64,
-	default_track: TrackId,
+	default_track: TrackLabel,
 	cooldown: Option<f64>,
 	semantic_duration: Option<f64>,
 	default_loop_start: Option<f64>,
@@ -238,6 +239,41 @@ impl Arrangement {
 	/// The duration is always the end of the last playing sound clip.
 	pub fn duration(&self) -> f64 {
 		self.duration
+	}
+
+	/// Gets the default track that instances of this sound
+	/// will play on.
+	pub fn default_track(&self) -> &TrackLabel {
+		&self.default_track
+	}
+
+	/// Gets the [semantic duration](crate::playable::PlayableSettings#structfield.semantic_duration)
+	/// of the sound.
+	pub fn semantic_duration(&self) -> Option<f64> {
+		self.semantic_duration
+	}
+
+	/// Gets the default loop start point for instances of this
+	/// sound.
+	pub fn default_loop_start(&self) -> Option<f64> {
+		self.default_loop_start
+	}
+
+	pub(crate) fn convert_names(
+		&mut self,
+		track_names: &BiMap<String, SubTrackId>,
+	) -> AudioResult<()> {
+		match &mut self.default_track {
+			TrackLabel::Name(name) => {
+				self.default_track = TrackLabel::Id(TrackId::Sub(
+					*track_names
+						.get_by_left(name)
+						.ok_or(AudioError::NoTrackWithName(name.clone()))?,
+				));
+			}
+			_ => {}
+		}
+		Ok(())
 	}
 
 	/// Gets the frame at the given position of the arrangement.

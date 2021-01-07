@@ -3,7 +3,7 @@ use std::{
 	sync::atomic::{AtomicUsize, Ordering},
 };
 
-use crate::mixer::TrackId;
+use crate::mixer::{TrackId, TrackLabel};
 
 use super::{Sound, SoundHandle};
 
@@ -28,7 +28,12 @@ impl SoundId {
 		Self {
 			index,
 			duration: sound.duration(),
-			default_track: sound.default_track(),
+			default_track: match sound.default_track() {
+				TrackLabel::Id(id) => *id,
+				TrackLabel::Name(_) => panic!(
+					"Default track must be converted from name to ID before creating a SoundId.  This is an internal bug in Kira."
+				),
+			},
 			semantic_duration: sound.semantic_duration(),
 			default_loop_start: sound.default_loop_start(),
 		}

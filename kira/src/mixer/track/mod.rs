@@ -68,6 +68,48 @@ impl From<&TrackHandle> for TrackId {
 	}
 }
 
+#[derive(Debug, Clone)]
+pub enum TrackLabel {
+	Id(TrackId),
+	Name(String),
+}
+
+impl Default for TrackLabel {
+	fn default() -> Self {
+		Self::Id(TrackId::default())
+	}
+}
+
+impl From<TrackId> for TrackLabel {
+	fn from(id: TrackId) -> Self {
+		Self::Id(id)
+	}
+}
+
+impl From<SubTrackId> for TrackLabel {
+	fn from(id: SubTrackId) -> Self {
+		Self::Id(TrackId::Sub(id))
+	}
+}
+
+impl From<&TrackHandle> for TrackLabel {
+	fn from(handle: &TrackHandle) -> Self {
+		Self::Id(handle.id())
+	}
+}
+
+impl From<String> for TrackLabel {
+	fn from(name: String) -> Self {
+		Self::Name(name)
+	}
+}
+
+impl From<&str> for TrackLabel {
+	fn from(name: &str) -> Self {
+		Self::Name(name.into())
+	}
+}
+
 /// Settings for a mixer track.
 #[derive(Debug, Copy, Clone)]
 pub struct TrackSettings {
