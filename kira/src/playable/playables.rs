@@ -6,7 +6,7 @@ use crate::{
 	command::ResourceCommand,
 	resource::Resource,
 	sound::{Sound, SoundId},
-	Frame,
+	AudioError, AudioResult, Frame,
 };
 
 use super::{Playable, PlayableId, PlayableMut};
@@ -65,26 +65,48 @@ impl Playables {
 		}
 	}
 
-	pub fn run_command(&mut self, command: ResourceCommand, unloader: &mut Sender<Resource>) {
+	pub fn run_command(
+		&mut self,
+		command: ResourceCommand,
+		unloader: &mut Sender<Resource>,
+	) -> AudioResult<()> {
 		match command {
 			ResourceCommand::AddSound(sound) => {
-				if let Some(sound) = self.sounds.insert(sound.id(), sound) {
-					unloader.try_send(Resource::Sound(sound)).ok();
+				if self.sounds.len() >= self.sounds.capacity() {
+					Err(AudioError::SoundLimitReached)
+				} else {
+					if let Some(sound) = self.sounds.insert(sound.id(), sound) {
+						unloader.try_send(Resource::Sound(sound)).ok();
+					}
+					Ok(())
 				}
 			}
 			ResourceCommand::RemoveSound(id) => {
 				if let Some(sound) = self.sounds.remove(&id) {
 					unloader.try_send(Resource::Sound(sound)).ok();
+					Ok(())
+				} else {
+					Err(AudioError::NoSoundWithId(id))
 				}
 			}
 			ResourceCommand::AddArrangement(arrangement) => {
-				if let Some(arrangement) = self.arrangements.insert(arrangement.id(), arrangement) {
-					unloader.try_send(Resource::Arrangement(arrangement)).ok();
+				if self.arrangements.len() >= self.arrangements.capacity() {
+					Err(AudioError::ArrangementLimitReached)
+				} else {
+					if let Some(arrangement) =
+						self.arrangements.insert(arrangement.id(), arrangement)
+					{
+						unloader.try_send(Resource::Arrangement(arrangement)).ok();
+					}
+					Ok(())
 				}
 			}
 			ResourceCommand::RemoveArrangement(id) => {
 				if let Some(arrangement) = self.arrangements.remove(&id) {
 					unloader.try_send(Resource::Arrangement(arrangement)).ok();
+					Ok(())
+				} else {
+					Err(AudioError::NoArrangementWithId(id))
 				}
 			}
 		}

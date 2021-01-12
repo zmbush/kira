@@ -1,6 +1,8 @@
 use cpal::{BuildStreamError, DefaultStreamConfigError, PlayStreamError};
 use thiserror::Error;
 
+use crate::{arrangement::ArrangementId, sound::SoundId};
+
 /// Something that can go wrong.
 #[derive(Debug, Error)]
 pub enum AudioError {
@@ -24,6 +26,20 @@ pub enum AudioError {
 
 	#[error("The backend cannot receive commands because it no longer exists")]
 	BackendDisconnected,
+
+	#[error("Cannot add a sound because the maximum number of sounds has been reached")]
+	SoundLimitReached,
+
+	#[error(
+		"Cannot add an arrangement because the maximum number of arrangements has been reached"
+	)]
+	ArrangementLimitReached,
+
+	#[error("No sound with the given ID exists")]
+	NoSoundWithId(SoundId),
+
+	#[error("No arrangement with the given ID exists")]
+	NoArrangementWithId(ArrangementId),
 
 	#[error(
 		"Cannot pop an event from a receiver because the receiver is currently mutably borrowed"

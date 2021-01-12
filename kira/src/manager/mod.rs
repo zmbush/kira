@@ -110,7 +110,7 @@ impl AudioManager {
 	#[cfg(not(target_arch = "wasm32"))]
 	pub fn new(settings: AudioManagerSettings) -> AudioResult<Self> {
 		let (quit_signal_sender, quit_signal_receiver) = flume::bounded(1);
-		let (command_sender, command_receiver) = flume::bounded(settings.num_commands);
+		let (command_sender, command_receiver) = flume::bounded(1);
 		let (result_sender, result_receiver) = flume::bounded(1);
 		let (unloader, resources_to_unload_receiver) = flume::bounded(RESOURCE_UNLOADER_CAPACITY);
 
@@ -160,7 +160,7 @@ impl AudioManager {
 	#[cfg(target_arch = "wasm32")]
 	pub fn new(settings: AudioManagerSettings) -> AudioResult<Self> {
 		let (quit_signal_sender, quit_signal_receiver) = flume::bounded(1);
-		let (command_sender, command_receiver) = flume::bounded(settings.num_commands);
+		let (command_sender, command_receiver) = flume::bounded(1);
 		let (result_sender, result_receiver) = flume::bounded(1);
 		let (unloader, resources_to_unload_receiver) = flume::bounded(RESOURCE_UNLOADER_CAPACITY);
 		Ok(Self {
@@ -222,7 +222,7 @@ impl AudioManager {
 	) -> AudioResult<(Self, Backend)> {
 		const SAMPLE_RATE: u32 = 48000;
 		let (quit_signal_sender, _) = flume::bounded(1);
-		let (command_sender, command_receiver) = flume::bounded(settings.num_commands);
+		let (command_sender, command_receiver) = flume::bounded(1);
 		let (result_sender, result_receiver) = flume::bounded(1);
 		let (unloader, resources_to_unload_receiver) = flume::bounded(RESOURCE_UNLOADER_CAPACITY);
 		let audio_manager = Self {
@@ -246,7 +246,10 @@ impl AudioManager {
 		let handle = SoundHandle::new(&sound, self.command_sender.clone());
 		self.command_sender
 			.push(ResourceCommand::AddSound(sound).into())?;
-		Ok(handle)
+		self.result_receiver
+			.recv()
+			.map_err(|_| AudioError::BackendDisconnected)?
+			.map(|_| handle)
 	}
 
 	/// Loads a sound from a file and returns a handle to the sound.
@@ -265,7 +268,10 @@ impl AudioManager {
 
 	pub fn remove_sound(&mut self, id: impl Into<SoundId>) -> AudioResult<()> {
 		self.command_sender
-			.push(ResourceCommand::RemoveSound(id.into()).into())
+			.push(ResourceCommand::RemoveSound(id.into()).into())?;
+		self.result_receiver
+			.recv()
+			.map_err(|_| AudioError::BackendDisconnected)?
 	}
 
 	/// Sends a arrangement to the audio thread and returns a handle to the arrangement.
@@ -273,12 +279,18 @@ impl AudioManager {
 		let handle = ArrangementHandle::new(&arrangement, self.command_sender.clone());
 		self.command_sender
 			.push(ResourceCommand::AddArrangement(arrangement).into())?;
-		Ok(handle)
+		self.result_receiver
+			.recv()
+			.map_err(|_| AudioError::BackendDisconnected)?
+			.map(|_| handle)
 	}
 
 	pub fn remove_arrangement(&mut self, id: impl Into<ArrangementId>) -> AudioResult<()> {
 		self.command_sender
-			.push(ResourceCommand::RemoveArrangement(id.into()).into())
+			.push(ResourceCommand::RemoveArrangement(id.into()).into())?;
+		self.result_receiver
+			.recv()
+			.map_err(|_| AudioError::BackendDisconnected)?
 	}
 
 	/// Frees resources that are no longer in use, such as unloaded sounds

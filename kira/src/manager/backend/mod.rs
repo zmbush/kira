@@ -18,7 +18,7 @@ use streams::Streams;
 pub struct Backend {
 	dt: f64,
 	playables: Playables,
-	command_queue: Vec<Command>,
+	sequence_command_queue: Vec<Command>,
 	command_receiver: Receiver<Command>,
 	result_sender: Sender<AudioResult<()>>,
 	unloader: Sender<Resource>,
@@ -42,7 +42,7 @@ impl Backend {
 		Self {
 			dt: 1.0 / sample_rate as f64,
 			playables: Playables::new(settings.num_sounds, settings.num_arrangements),
-			command_queue: Vec::with_capacity(settings.num_commands),
+			sequence_command_queue: Vec::with_capacity(settings.num_commands),
 			command_receiver,
 			result_sender,
 			unloader,
@@ -57,11 +57,53 @@ impl Backend {
 	}
 
 	fn process_commands(&mut self) {
-		self.command_queue.extend(self.command_receiver.try_iter());
-		for command in self.command_queue.drain(..) {
+		if let Ok(command) = self.command_receiver.try_recv() {
+			self.result_sender
+				.try_send(match command {
+					Command::Resource(command) => {
+						self.playables.run_command(command, &mut self.unloader)
+					}
+					Command::Metronome(command) => {
+						Ok(self.metronomes.run_command(command, &mut self.unloader))
+					}
+					Command::Instance(command) => {
+						Ok(self
+							.instances
+							.run_command(command, &mut self.playables, &self.groups))
+					}
+					Command::Sequence(command) => {
+						Ok(self
+							.sequences
+							.run_command(command, &self.groups, &mut self.unloader))
+					}
+					Command::Mixer(command) => {
+						Ok(self.mixer.run_command(command, &mut self.unloader))
+					}
+					Command::Parameter(command) => Ok(self.parameters.run_command(command)),
+					Command::Group(command) => {
+						Ok(self.groups.run_command(command, &mut self.unloader))
+					}
+					Command::Stream(command) => {
+						Ok(self.streams.run_command(command, &mut self.unloader))
+					}
+				})
+				.ok();
+		}
+	}
+
+	fn update_sequences(&mut self) {
+		for command in self.sequences.update(
+			self.dt,
+			&self.playables,
+			&self.metronomes,
+			&mut self.unloader,
+		) {
+			self.sequence_command_queue.push(command.into());
+		}
+		for command in self.sequence_command_queue.drain(..) {
 			match command {
 				Command::Resource(command) => {
-					self.playables.run_command(command, &mut self.unloader);
+					self.playables.run_command(command, &mut self.unloader).ok();
 				}
 				Command::Metronome(command) => {
 					self.metronomes.run_command(command, &mut self.unloader);
@@ -87,17 +129,6 @@ impl Backend {
 					self.streams.run_command(command, &mut self.unloader);
 				}
 			}
-		}
-	}
-
-	fn update_sequences(&mut self) {
-		for command in self.sequences.update(
-			self.dt,
-			&self.playables,
-			&self.metronomes,
-			&mut self.unloader,
-		) {
-			self.command_queue.push(command.into());
 		}
 	}
 
