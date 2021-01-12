@@ -8,7 +8,7 @@ use self::mixer::Mixer;
 use super::AudioManagerSettings;
 use crate::{
 	command::Command, frame::Frame, group::groups::Groups, metronome::Metronomes,
-	parameter::Parameters, playable::Playables, resource::Resource,
+	parameter::Parameters, playable::Playables, resource::Resource, AudioResult,
 };
 use flume::{Receiver, Sender};
 use instances::Instances;
@@ -20,6 +20,7 @@ pub struct Backend {
 	playables: Playables,
 	command_queue: Vec<Command>,
 	command_receiver: Receiver<Command>,
+	result_sender: Sender<AudioResult<()>>,
 	unloader: Sender<Resource>,
 	metronomes: Metronomes,
 	parameters: Parameters,
@@ -35,6 +36,7 @@ impl Backend {
 		sample_rate: u32,
 		settings: AudioManagerSettings,
 		command_receiver: Receiver<Command>,
+		result_sender: Sender<AudioResult<()>>,
 		unloader: Sender<Resource>,
 	) -> Self {
 		Self {
@@ -42,6 +44,7 @@ impl Backend {
 			playables: Playables::new(settings.num_sounds, settings.num_arrangements),
 			command_queue: Vec::with_capacity(settings.num_commands),
 			command_receiver,
+			result_sender,
 			unloader,
 			parameters: Parameters::new(settings.num_parameters),
 			metronomes: Metronomes::new(settings.num_metronomes),

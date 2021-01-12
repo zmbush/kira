@@ -94,6 +94,7 @@ and the audio thread.
 pub struct AudioManager {
 	quit_signal_sender: Sender<bool>,
 	command_sender: CommandSender,
+	result_receiver: Receiver<AudioResult<()>>,
 	resources_to_unload_receiver: Receiver<Resource>,
 
 	// on wasm, holds the stream (as it has been created on the main thread)
@@ -110,6 +111,7 @@ impl AudioManager {
 	pub fn new(settings: AudioManagerSettings) -> AudioResult<Self> {
 		let (quit_signal_sender, quit_signal_receiver) = flume::bounded(1);
 		let (command_sender, command_receiver) = flume::bounded(settings.num_commands);
+		let (result_sender, result_receiver) = flume::bounded(1);
 		let (unloader, resources_to_unload_receiver) = flume::bounded(RESOURCE_UNLOADER_CAPACITY);
 
 		const WRAPPER_THREAD_SLEEP_DURATION: f64 = 1.0 / 60.0;
@@ -118,7 +120,7 @@ impl AudioManager {
 		// set up a cpal stream on a new thread. we could do this on the main thread,
 		// but that causes issues with LÖVE.
 		std::thread::spawn(move || {
-			match Self::setup_stream(settings, command_receiver, unloader) {
+			match Self::setup_stream(settings, command_receiver, result_sender, unloader) {
 				Ok(_stream) => {
 					setup_result_sender.try_send(Ok(())).unwrap();
 					// wait for a quit message before ending the thread and dropping
@@ -149,6 +151,7 @@ impl AudioManager {
 		Ok(Self {
 			quit_signal_sender,
 			command_sender: CommandSender::new(command_sender),
+			result_receiver,
 			resources_to_unload_receiver,
 		})
 	}
@@ -158,18 +161,21 @@ impl AudioManager {
 	pub fn new(settings: AudioManagerSettings) -> AudioResult<Self> {
 		let (quit_signal_sender, quit_signal_receiver) = flume::bounded(1);
 		let (command_sender, command_receiver) = flume::bounded(settings.num_commands);
+		let (result_sender, result_receiver) = flume::bounded(1);
 		let (unloader, resources_to_unload_receiver) = flume::bounded(RESOURCE_UNLOADER_CAPACITY);
 		Ok(Self {
 			quit_signal_sender,
 			command_sender: CommandSender::new(command_sender),
+			result_receiver,
 			resources_to_unload_receiver,
-			_stream: Self::setup_stream(settings, command_receiver, unloader)?,
+			_stream: Self::setup_stream(settings, command_receiver, result_sender, unloader)?,
 		})
 	}
 
 	fn setup_stream(
 		settings: AudioManagerSettings,
 		command_receiver: Receiver<Command>,
+		result_sender: Sender<AudioResult<()>>,
 		unloader: Sender<Resource>,
 	) -> AudioResult<Stream> {
 		let host = cpal::default_host();
@@ -179,7 +185,13 @@ impl AudioManager {
 		let config = device.default_output_config()?.config();
 		let sample_rate = config.sample_rate.0;
 		let channels = config.channels;
-		let mut backend = Backend::new(sample_rate, settings, command_receiver, unloader);
+		let mut backend = Backend::new(
+			sample_rate,
+			settings,
+			command_receiver,
+			result_sender,
+			unloader,
+		);
 		let stream = device.build_output_stream(
 			&config,
 			move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
@@ -211,13 +223,21 @@ impl AudioManager {
 		const SAMPLE_RATE: u32 = 48000;
 		let (quit_signal_sender, _) = flume::bounded(1);
 		let (command_sender, command_receiver) = flume::bounded(settings.num_commands);
+		let (result_sender, result_receiver) = flume::bounded(1);
 		let (unloader, resources_to_unload_receiver) = flume::bounded(RESOURCE_UNLOADER_CAPACITY);
 		let audio_manager = Self {
 			quit_signal_sender,
 			command_sender: CommandSender::new(command_sender),
+			result_receiver,
 			resources_to_unload_receiver,
 		};
-		let backend = Backend::new(SAMPLE_RATE, settings, command_receiver, unloader);
+		let backend = Backend::new(
+			SAMPLE_RATE,
+			settings,
+			command_receiver,
+			result_sender,
+			unloader,
+		);
 		Ok((audio_manager, backend))
 	}
 
