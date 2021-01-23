@@ -145,6 +145,38 @@ impl Sound {
 			settings,
 		))
 	}
+	/// Decodes a sound from an ogg data stream.
+	#[cfg(feature = "ogg")]
+	pub fn from_ogg_data<T>(data: T, settings: PlayableSettings) -> AudioResult<Self>
+	where
+		T: std::io::Read + std::io::Seek,
+	{
+		use lewton::{inside_ogg::OggStreamReader, samples::Samples};
+		let mut reader = OggStreamReader::new(data)?;
+		let mut stereo_samples = vec![];
+		while let Some(packet) = reader.read_dec_packet_generic::<Vec<Vec<f32>>>()? {
+			let num_channels = packet.len();
+			let num_samples = packet.num_samples();
+			match num_channels {
+				1 => {
+					for i in 0..num_samples {
+						stereo_samples.push(Frame::from_mono(packet[0][i]));
+					}
+				}
+				2 => {
+					for i in 0..num_samples {
+						stereo_samples.push(Frame::new(packet[0][i], packet[1][i]));
+					}
+				}
+				_ => return Err(AudioError::UnsupportedChannelConfiguration),
+			}
+		}
+		Ok(Self::from_frames(
+			reader.ident_hdr.audio_sample_rate,
+			stereo_samples,
+			settings,
+		))
+	}
 
 	/// Decodes a sound from a flac file.
 	#[cfg(feature = "flac")]
